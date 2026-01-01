@@ -87,7 +87,8 @@ function init() {
         1000
     );
     game.camera.position.copy(game.player.position);
-    
+    game.scene.add(game.camera); // Add camera to scene
+
     // Create renderer
     game.renderer = new THREE.WebGLRenderer({ antialias: true });
     game.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -104,10 +105,15 @@ function init() {
     // Player light (torch effect)
     // Warmer, more orange color for fire
     const playerLight = new THREE.PointLight(0xffaa00, 2.0, 18);
-    playerLight.position.copy(game.player.position);
+    // Attach light to camera so it moves/rotates with player view
+    // Offset to the right and slightly forward to create better shadows
+    playerLight.position.set(0.3, -0.1, -0.2); 
     playerLight.castShadow = true;
-    playerLight.shadow.bias = -0.001; // Reduce shadow acne
-    game.scene.add(playerLight);
+    playerLight.shadow.bias = -0.0005; // Reduce shadow acne
+    playerLight.shadow.mapSize.width = 2048; // Higher resolution shadows
+    playerLight.shadow.mapSize.height = 2048;
+    playerLight.shadow.camera.near = 0.1; // Cast shadows from close objects
+    game.camera.add(playerLight); // Add to camera instead of scene
     game.player.light = playerLight;
     
     // Torch flicker properties
@@ -1727,15 +1733,14 @@ function createTreasure(gridX, gridY, type) {
             break;
     }
     
-    // Enable shadows for treasures (except translucent ones)
-    if (type !== 'gem') {
-        treasureGroup.traverse((child) => {
-            if (child.isMesh) {
-                child.castShadow = true;
-                child.receiveShadow = true;
-            }
-        });
-    }
+    // Enable shadows for treasures
+    // User requested Gems to cast shadows, so enabled for all
+    treasureGroup.traverse((child) => {
+        if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+        }
+    });
 
     treasureGroup.position.x = gridX * cellSize + cellSize / 2;
     treasureGroup.position.y = 0.3;
@@ -3738,14 +3743,13 @@ function createDecoration(gridX, gridY, type) {
     
     // Enable shadows for decorations (except translucent/flat ones)
     const noShadowDecorations = [
-        DECORATION_TYPES.PUDDLE,
-        DECORATION_TYPES.SPIDER_WEB,
-        DECORATION_TYPES.MOSS_PATCH,
-        DECORATION_TYPES.WALL_INSCRIPTION,
-        DECORATION_TYPES.BLOOD_STAIN
+        'puddle',
+        'spider_web',
+        'moss_patch',
+        'wall_inscription'
     ];
     
-    if (!noShadowDecorations.includes(type)) {
+    if (type.name && !noShadowDecorations.includes(type.name)) {
         decorationGroup.traverse((child) => {
             if (child.isMesh) {
                 child.castShadow = true;
@@ -6592,7 +6596,8 @@ function createMonster(gridX, gridY, type) {
     }
     
     // Enable shadows for monsters (except translucent ones)
-    if (type !== MONSTER_TYPES.JELLY && type !== MONSTER_TYPES.GHOST && type !== MONSTER_TYPES.WRAITH && type !== MONSTER_TYPES.CUBE) {
+    // User requested Jellies to cast shadows, so removed from exclusion
+    if (type !== MONSTER_TYPES.GHOST && type !== MONSTER_TYPES.WRAITH && type !== MONSTER_TYPES.CUBE) {
         if (body) {
             body.traverse((child) => {
                 if (child.isMesh) {
@@ -7763,17 +7768,18 @@ function updatePlayer(deltaTime) {
         game.player.light.distance = game.player.torch.rangeBase + flicker * game.player.torch.rangeVar;
         
         // Slight position wobble to simulate holding it
-        const wobbleX = Math.sin(time * 1.5) * 0.05;
-        const wobbleY = Math.cos(time * 2.3) * 0.05;
-        const wobbleZ = Math.sin(time * 3.7) * 0.05;
+        const wobbleX = Math.sin(time * 1.5) * 0.02;
+        const wobbleY = Math.cos(time * 2.3) * 0.02;
+        const wobbleZ = Math.sin(time * 3.7) * 0.02;
         
-        game.player.light.position.copy(game.player.position);
-        game.player.light.position.x += wobbleX;
-        game.player.light.position.y += wobbleY;
-        game.player.light.position.z += wobbleZ;
-    } else if (game.player.light) {
-        game.player.light.position.copy(game.player.position);
+        // Update position relative to camera (base offset + wobble)
+        game.player.light.position.set(
+            0.3 + wobbleX, 
+            -0.1 + wobbleY, 
+            -0.2 + wobbleZ
+        );
     }
+    // No else block needed as light is attached to camera
 
     // Check for win condition (Ladder)
     if (game.ladderPosition && !game.won) {
