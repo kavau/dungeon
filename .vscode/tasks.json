@@ -1,0 +1,41 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "append_css",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-c",
+				"echo '\n#message-log {\n    position: absolute;\n    bottom: 20px;\n    right: 20px;\n    width: 400px;\n    max-height: 250px;\n    overflow-y: hidden;\n    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);\n    padding: 10px;\n    color: #eee;\n    font-size: 14px;\n    z-index: 100;\n    display: flex;\n    flex-direction: column;\n    justify-content: flex-end;\n    pointer-events: none;\n}\n\n.log-entry {\n    margin-bottom: 5px;\n    text-shadow: 1px 1px 2px #000;\n    opacity: 0;\n    animation: fadeIn 0.3s forwards;\n}\n\n@keyframes fadeIn {\n    from { opacity: 0; transform: translateY(10px); }\n    to { opacity: 1; transform: translateY(0); }\n}\n\n.log-entry.combat { color: #ff6666; }\n.log-entry.player-hit { color: #ff3333; font-weight: bold; }\n.log-entry.monster-die { color: #ffaa00; font-weight: bold; }\n.log-entry.item { color: #ffff00; }\n.log-entry.torch { color: #ffcc00; }\n.log-entry.door { color: #aaaaff; }\n' >> style.css"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "append_css",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-c",
+				"cat >> style.css <<EOF\n\n#intro-screen {\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    background: rgba(0, 0, 0, 0.9);\n    display: flex;\n    flex-direction: column;\n    justify-content: center;\n    align-items: center;\n    z-index: 300;\n    color: #e0e0e0;\n    text-align: center;\n    padding: 40px;\n}\n\n#intro-screen h1 {\n    font-size: 48px;\n    color: #ffaa00;\n    margin-bottom: 30px;\n    text-shadow: 0 0 10px rgba(255, 170, 0, 0.5);\n    font-family: 'Courier New', monospace;\n    letter-spacing: 2px;\n}\n\n#intro-screen p {\n    font-size: 18px;\n    max-width: 800px;\n    margin-bottom: 20px;\n    line-height: 1.6;\n    color: #ccc;\n}\n\n#intro-screen .highlight {\n    color: #ff4444;\n    font-weight: bold;\n    font-size: 22px;\n    margin-top: 20px;\n    text-shadow: 0 0 5px rgba(255, 68, 68, 0.3);\n}\n\n#intro-screen .press-key {\n    margin-top: 50px;\n    font-size: 20px;\n    color: #fff;\n    animation: pulse 1.5s infinite;\n}\n\n@keyframes pulse {\n    0% { opacity: 0.5; }\n    50% { opacity: 1; }\n    100% { opacity: 0.5; }\n}\nEOF\n"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "none"
+		},
+		{
+			"label": "append_win_css",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-c",
+				"cat >> style.css <<EOF\n\n#win-screen {\n    position: fixed;\n    top: 0;\n    left: 0;\n    width: 100%;\n    height: 100%;\n    background: rgba(0, 0, 0, 0.9);\n    display: none;\n    flex-direction: column;\n    justify-content: center;\n    align-items: center;\n    z-index: 300;\n    color: #e0e0e0;\n    text-align: center;\n    padding: 40px;\n}\n\n#win-screen h1 {\n    font-size: 48px;\n    color: #44ff44;\n    margin-bottom: 30px;\n    text-shadow: 0 0 10px rgba(68, 255, 68, 0.5);\n    font-family: 'Courier New', monospace;\n    letter-spacing: 2px;\n}\n\n#win-screen p {\n    font-size: 18px;\n    max-width: 800px;\n    margin-bottom: 20px;\n    line-height: 1.6;\n    color: #ccc;\n}\n\n#win-screen .highlight {\n    color: #88ff88;\n    font-weight: bold;\n    font-size: 22px;\n    margin-top: 20px;\n    text-shadow: 0 0 5px rgba(136, 255, 136, 0.3);\n}\n\n#win-screen .press-key {\n    margin-top: 50px;\n    font-size: 20px;\n    color: #fff;\n    animation: pulse 1.5s infinite;\n}\nEOF\n"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "none"
+		}
+	]
+}

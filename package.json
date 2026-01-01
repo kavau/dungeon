@@ -1,0 +1,15 @@
+{
+  "name": "dungeon-crawler",
+  "version": "1.0.0",
+  "description": "3D Dungeon Crawler Game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["game", "3d", "dungeon", "threejs"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

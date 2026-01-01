@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Dungeon Crawler</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="info">
+        <h1>3D Dungeon Crawler</h1>
+        <p>↑/↓ Arrow keys: Move forward/backward</p>
+        <p>←/→ Arrow keys: Rotate 90° left/right</p>
+        <p>A: Attack monster in front</p>
+        <p>E: Open/close doors</p>
+        <p>Space: Wait/skip turn</p>
+        <p>Hold Alt: Show visible items</p>
+        <p>Press D: Toggle debug window</p>
+        <p id="health">Health: 100/100</p>
+        <p id="wealth">Wealth: 0 gold</p>
+    </div>
+    
+    <div id="damage-flash"></div>
+    
+    <div id="game-over">
+        <h1>GAME OVER</h1>
+        <p>You were defeated!</p>
+        <p>Reload the page to try again</p>
+    </div>
+
+    <div id="intro-screen">
+        <h1>Awakening</h1>
+        <p>You wake up in a cold, damp darkness. A throbbing pain pulses in your skull—the aftermath of a blow you don't remember taking.</p>
+        <p>Beside you lies a flickering torch. You grasp it, the warmth a small comfort against the chill.</p>
+        <p>The light reveals a massive cavern. In its center looms the rotting carcass of a giant wyrm, arrows protruding from its scales. Around it lie the broken bodies of adventurers... your comrades?</p>
+        <p>Memory fails you, but instinct screams one thing:</p>
+        <p class="highlight">Find the way out.</p>
+        <p class="press-key">Press any key to begin</p>
+    </div>
+
+    <div id="win-screen">
+        <h1>Freedom</h1>
+        <p>The cool night air hits your face as you climb the final rung. You pull yourself up, muscles aching, lungs burning, but alive.</p>
+        <p>Below you, the darkness of the dungeon remains, holding its secrets and its dead. But you... you are free.</p>
+        <p>The stars above have never looked so bright.</p>
+        <p class="highlight">You have escaped!</p>
+        <p class="press-key">Press any key to play again</p>
+    </div>
+    
+    <div id="debug-window"></div>
+    
+    <div id="floating-labels"></div>
+    
+    <div id="message-log"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
