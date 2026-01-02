@@ -1,5 +1,5 @@
-import { game, dungeonMap } from './state.js';
-import { logMessage, updateWealthDisplay } from './ui.js';
+import { game, dungeonMap } from '../state.js';
+import { logMessage, updateWealthDisplay } from '../ui.js';
 
 export const TREASURE_TYPES = {
     CHEST: { name: 'chest', value: 100, color: 0x8B4513 },

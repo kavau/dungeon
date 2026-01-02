@@ -1,4 +1,5 @@
 import { game, dungeonMap } from './state.js';
+import { createDecoration, DECORATION_TYPES } from './entities/decoration.js';
 import { 
     createFloorTexture, 
     createCeilingTexture, 
@@ -75,6 +76,7 @@ export function generateDungeon() {
     ceiling.position.z = (game.dungeon.height * cellSize) / 2;
     ceiling.receiveShadow = true;
     game.scene.add(ceiling);
+    game.dungeon.ceilingMesh = ceiling;
     
     // Create walls based on map
     const wallTexture = createWallTexture();
@@ -476,4 +478,422 @@ export function spawnDoors() {
     }
     
     console.log(`Spawned ${game.doors.length} doors`);
+}
+
+export function clearDungeon() {
+    // Remove walls
+    for (let mesh of game.dungeon.wallMeshes) {
+        game.scene.remove(mesh);
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (mesh.material) mesh.material.dispose();
+    }
+    game.dungeon.walls = [];
+    game.dungeon.wallMeshes = [];
+    
+    // Remove floor and ceiling (find them in scene)
+    const toRemove = [];
+    game.scene.traverse((child) => {
+        if (child.isMesh && (child.geometry.type === 'PlaneGeometry')) {
+            // Check if it's floor or ceiling (based on rotation/position)
+            // Floor is rotated -PI/2, Ceiling PI/2
+            if (Math.abs(child.rotation.x) > 1.0) {
+                toRemove.push(child);
+            }
+        }
+    });
+    
+    for (let child of toRemove) {
+        game.scene.remove(child);
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) child.material.dispose();
+    }
+    
+    // Remove doors
+    for (let door of game.doors) {
+        game.scene.remove(door.doorGroup);
+        game.scene.remove(door.doorPanel);
+    }
+    game.doors = [];
+    
+    // Remove monsters
+    for (let monster of game.monsters) {
+        game.scene.remove(monster.mesh);
+    }
+    game.monsters = [];
+    
+    // Remove treasures
+    for (let treasure of game.treasures) {
+        game.scene.remove(treasure.mesh);
+    }
+    game.treasures = [];
+    
+    // Remove decorations
+    for (let decoration of game.decorations) {
+        game.scene.remove(decoration.mesh);
+    }
+    game.decorations = [];
+    
+    // Remove critters
+    for (let critter of game.critters) {
+        game.scene.remove(critter.mesh);
+    }
+    game.critters = [];
+
+    // Remove ladder if exists
+    if (game.ladderMesh) {
+        game.scene.remove(game.ladderMesh);
+        game.ladderMesh = null;
+    }
+    game.ladderPosition = null;
+
+    // Remove sunlight effects if they exist
+    if (game.sunlightBeam) {
+        game.scene.remove(game.sunlightBeam);
+        if (game.sunlightBeam.geometry) game.sunlightBeam.geometry.dispose();
+        if (game.sunlightBeam.material) game.sunlightBeam.material.dispose();
+        game.sunlightBeam = null;
+    }
+    if (game.sunlight) {
+        game.scene.remove(game.sunlight);
+        if (game.sunlight.target) game.scene.remove(game.sunlight.target);
+        game.sunlight = null;
+    }
+}
+
+export function generateProceduralMap(width = game.dungeon.width, height = game.dungeon.height) {
+    // Initialize with walls
+    const map = [];
+    for (let y = 0; y < height; y++) {
+        const row = [];
+        for (let x = 0; x < width; x++) {
+            row.push(1);
+        }
+        map.push(row);
+    }
+    
+    // Room Generator - Fewer, smaller rooms
+    const rooms = [];
+    // For 40x40, we want maybe 10-15 rooms to leave space for corridors
+    const numRooms = 10 + Math.floor(Math.random() * 6);
+    
+    for (let i = 0; i < numRooms; i++) {
+        const w = 3 + Math.floor(Math.random() * 4); // Smaller rooms (3-6)
+        const h = 3 + Math.floor(Math.random() * 4);
+        const x = 1 + Math.floor(Math.random() * (width - w - 2));
+        const y = 1 + Math.floor(Math.random() * (height - h - 2));
+        
+        // Check overlap with padding
+        let overlap = false;
+        for (let room of rooms) {
+            if (x < room.x + room.w + 2 && x + w + 2 > room.x &&
+                y < room.y + room.h + 2 && y + h + 2 > room.y) {
+                overlap = true;
+                break;
+            }
+        }
+        
+        if (!overlap) {
+            rooms.push({ x, y, w, h });
+            
+            // Carve room
+            for (let ry = y; ry < y + h; ry++) {
+                for (let rx = x; rx < x + w; rx++) {
+                    map[ry][rx] = 0;
+                }
+            }
+        }
+    }
+    
+    // Connect rooms with twisted corridors
+    // Sort rooms to connect nearest neighbors or just sequential?
+    // Sequential is fine, it creates a long path.
+    
+    for (let i = 0; i < rooms.length - 1; i++) {
+        const roomA = rooms[i];
+        const roomB = rooms[i + 1];
+        
+        let cx = Math.floor(roomA.x + roomA.w / 2);
+        let cy = Math.floor(roomA.y + roomA.h / 2);
+        const tx = Math.floor(roomB.x + roomB.w / 2);
+        const ty = Math.floor(roomB.y + roomB.h / 2);
+        
+        // Drunkard's walk / Twisted path
+        while (cx !== tx || cy !== ty) {
+            // Determine direction
+            const dx = tx - cx;
+            const dy = ty - cy;
+            
+            let moveX = 0;
+            let moveY = 0;
+            
+            // 70% chance to move towards target, 30% random deviation
+            if (Math.random() < 0.7) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    moveX = Math.sign(dx);
+                } else {
+                    moveY = Math.sign(dy);
+                }
+            } else {
+                // Random move
+                if (Math.random() < 0.5) {
+                    moveX = Math.random() < 0.5 ? 1 : -1;
+                } else {
+                    moveY = Math.random() < 0.5 ? 1 : -1;
+                }
+            }
+            
+            // Apply move
+            cx += moveX;
+            cy += moveY;
+            
+            // Clamp to bounds
+            cx = Math.max(1, Math.min(width - 2, cx));
+            cy = Math.max(1, Math.min(height - 2, cy));
+            
+            // Carve
+            map[cy][cx] = 0;
+            
+            // Make corridors slightly wider occasionally to prevent 1-tile choke points being too annoying
+            if (Math.random() < 0.1) {
+                if (moveX !== 0) {
+                    if (cy > 1) map[cy-1][cx] = 0;
+                    if (cy < height-2) map[cy+1][cx] = 0;
+                } else {
+                    if (cx > 1) map[cy][cx-1] = 0;
+                    if (cx < width-2) map[cy][cx+1] = 0;
+                }
+            }
+        }
+    }
+    
+    // Update the global map
+    // Ensure dungeonMap is large enough
+    if (dungeonMap.length !== height || dungeonMap[0].length !== width) {
+        // Resize dungeonMap
+        dungeonMap.length = 0;
+        for(let y=0; y<height; y++) {
+            dungeonMap.push(new Array(width).fill(1));
+        }
+    }
+    
+    for(let y=0; y<height; y++) {
+        for(let x=0; x<width; x++) {
+            dungeonMap[y][x] = map[y][x];
+        }
+    }
+
+    // Special modification for Level 5 (The Awakening)
+    // Create a large central cavern for the Wyrm
+    if (game.dungeon.level === 5) {
+        const centerX = Math.floor(width / 2);
+        const centerY = Math.floor(height / 2);
+        const cavernRadius = 3.5; // 7x7 roughly
+
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
+                const dx = x - centerX;
+                const dy = y - centerY;
+                // Create a rough circular cavern
+                if (dx*dx + dy*dy < cavernRadius*cavernRadius + (Math.random() * 2)) {
+                    dungeonMap[y][x] = 0;
+                }
+            }
+        }
+    }
+}
+
+export function spawnLadder() {
+    const cellSize = game.dungeon.cellSize;
+    
+    // Find the furthest spot from the player
+    let bestX = -1;
+    let bestY = -1;
+    let maxDist = -1;
+    
+    const playerGridX = Math.floor(game.player.position.x / cellSize);
+    const playerGridY = Math.floor(game.player.position.z / cellSize);
+    
+    for (let y = 0; y < game.dungeon.height; y++) {
+        for (let x = 0; x < game.dungeon.width; x++) {
+            if (dungeonMap[y][x] === 0) {
+                // Calculate distance
+                const dx = x - playerGridX;
+                const dy = y - playerGridY;
+                const dist = dx*dx + dy*dy;
+                
+                if (dist > maxDist) {
+                    maxDist = dist;
+                    bestX = x;
+                    bestY = y;
+                }
+            }
+        }
+    }
+    
+    if (bestX !== -1) {
+        const x = bestX;
+        const y = bestY;
+        
+        game.ladderPosition = { x, y };
+        
+        // Create ladder mesh
+        const ladderGroup = new THREE.Group();
+        
+        // Rails
+        const ladderHeight = 12;
+        const railGeom = new THREE.CylinderGeometry(0.05, 0.05, ladderHeight, 8);
+        const railMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
+        
+        const leftRail = new THREE.Mesh(railGeom, railMat);
+        leftRail.position.set(-0.4, ladderHeight / 2, 0);
+        ladderGroup.add(leftRail);
+        
+        const rightRail = new THREE.Mesh(railGeom, railMat);
+        rightRail.position.set(0.4, ladderHeight / 2, 0);
+        ladderGroup.add(rightRail);
+        
+        // Rungs
+        const rungGeom = new THREE.CylinderGeometry(0.04, 0.04, 0.8, 8);
+        const numRungs = Math.floor(ladderHeight * 2);
+        for (let i = 0; i < numRungs; i++) {
+            const rung = new THREE.Mesh(rungGeom, railMat);
+            rung.rotation.z = Math.PI / 2;
+            rung.position.set(0, 0.5 + i * 0.5, 0);
+            ladderGroup.add(rung);
+        }
+        
+        ladderGroup.position.x = x * cellSize + cellSize / 2;
+        ladderGroup.position.z = y * cellSize + cellSize / 2;
+        
+        // Rotate to lean against a wall if possible
+        // Reduced lean angle and offset to ensure ladder stays within the ceiling hole
+        const leanAngle = 0.1; 
+        const wallOffset = cellSize * 0.25;
+
+        if (y > 0 && dungeonMap[y-1][x] === 1) {
+            ladderGroup.position.z -= wallOffset;
+            ladderGroup.rotation.x = -leanAngle;
+        } else if (y < game.dungeon.height - 1 && dungeonMap[y+1][x] === 1) {
+            ladderGroup.position.z += wallOffset;
+            ladderGroup.rotation.x = leanAngle;
+        } else if (x > 0 && dungeonMap[y][x-1] === 1) {
+            ladderGroup.position.x -= wallOffset;
+            ladderGroup.rotation.z = leanAngle;
+            ladderGroup.rotation.y = Math.PI / 2;
+        } else if (x < game.dungeon.width - 1 && dungeonMap[y][x+1] === 1) {
+            ladderGroup.position.x += wallOffset;
+            ladderGroup.rotation.z = -leanAngle;
+            ladderGroup.rotation.y = Math.PI / 2;
+        }
+        
+        game.scene.add(ladderGroup);
+        game.ladderMesh = ladderGroup;
+        
+        // Spawn a glow mushroom at the ladder base to make it easier to find
+        createDecoration(x, y, DECORATION_TYPES.MUSHROOMS);
+
+        // Create hole in ceiling (on all levels)
+        if (game.dungeon.ceilingMesh) {
+            const mesh = game.dungeon.ceilingMesh;
+            const positions = mesh.geometry.attributes.position;
+            const ladderWorldX = x * cellSize + cellSize / 2;
+            const ladderWorldZ = y * cellSize + cellSize / 2;
+            const holeRadius = 3.0; // Increased radius to ensure ladder fits
+            
+            // Ceiling plane is rotated X = 90 deg
+            // Local X = World X
+            // Local Y = World Z
+            // Local Z = World -Y (Up is negative Z)
+            
+            // Convert ladder world pos to local space relative to mesh center
+            // Mesh is at (width*cellSize/2, height*cellSize/2) in X/Z
+            const meshCenterX = mesh.position.x;
+            const meshCenterZ = mesh.position.z;
+            
+            for (let i = 0; i < positions.count; i++) {
+                const vx = positions.getX(i); // Local X
+                const vy = positions.getY(i); // Local Y
+                
+                // Convert local vertex to world X/Z to compare with ladder
+                // Since mesh rotation is 90 deg X, and position is set:
+                // WorldX = vx + mesh.position.x (Wait, PlaneGeometry is centered at 0,0)
+                // Actually, PlaneGeometry vertices are centered around 0,0.
+                // So vx is offset from center.
+                // WorldX = vx + mesh.position.x
+                // WorldZ = vy + mesh.position.z
+                
+                const worldVx = vx + meshCenterX;
+                const worldVz = vy + meshCenterZ;
+                
+                const dx = worldVx - ladderWorldX;
+                const dz = worldVz - ladderWorldZ;
+                const dist = Math.sqrt(dx*dx + dz*dz);
+                
+                if (dist < holeRadius) {
+                    let currentZ = positions.getZ(i);
+                    
+                    const innerRadius = 1.5;
+                    if (dist < innerRadius) {
+                        // Push UP (negative Z in local space)
+                        positions.setZ(i, currentZ - 12.0); 
+                    } else {
+                        // Interpolate
+                        const t = (dist - innerRadius) / (holeRadius - innerRadius);
+                        const offset = -12.0 * (1 - t);
+                        positions.setZ(i, currentZ + offset);
+                    }
+                }
+            }
+            positions.needsUpdate = true;
+            mesh.geometry.computeVertexNormals();
+        }
+
+        // Add sunlight effect if on Level 1
+        if (game.dungeon.level === 1) {
+            // Create a light beam
+            const beamGeometry = new THREE.CylinderGeometry(1.5, 2.5, 20, 16, 1, true);
+            const beamMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffcc,
+                transparent: true,
+                opacity: 0.08,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+            const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+            beam.position.set(
+                x * cellSize + cellSize / 2,
+                10, // Start high up
+                y * cellSize + cellSize / 2
+            );
+            // Tilt slightly
+            beam.rotation.x = 0.2;
+            beam.rotation.z = 0.1;
+            
+            game.scene.add(beam);
+            game.sunlightBeam = beam;
+
+            // Add a spotlight to simulate the sun
+            const sunLight = new THREE.SpotLight(0xffffee, 3, 40, 0.6, 0.5, 1);
+            sunLight.position.set(
+                x * cellSize + cellSize / 2 + 2,
+                18,
+                y * cellSize + cellSize / 2 + 2
+            );
+            sunLight.target.position.set(
+                x * cellSize + cellSize / 2,
+                0,
+                y * cellSize + cellSize / 2
+            );
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 512;
+            sunLight.shadow.mapSize.height = 512;
+            
+            game.scene.add(sunLight);
+            game.scene.add(sunLight.target);
+            game.sunlight = sunLight;
+        }
+
+        console.log(`Spawned ladder at (${x}, ${y}), dist: ${Math.sqrt(maxDist).toFixed(1)}`);
+    }
 }

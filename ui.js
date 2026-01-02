@@ -1,4 +1,4 @@
-import { game } from './state.js';
+import { game, dungeonMap } from './state.js';
 import { 
     getDifficultyText, 
     isObjectVisible, 
@@ -6,6 +6,220 @@ import {
     get2DPosition 
 } from './utils.js';
 import { getMonsterName, MONSTER_TYPES } from './entities/monster.js';
+
+// Toggle Map View
+export function toggleMap() {
+    let mapContainer = document.getElementById('map-overlay');
+    
+    if (!mapContainer) {
+        // Create map container if it doesn't exist
+        mapContainer = document.createElement('div');
+        mapContainer.id = 'map-overlay';
+        mapContainer.style.position = 'fixed';
+        mapContainer.style.top = '50%';
+        mapContainer.style.left = '50%';
+        mapContainer.style.transform = 'translate(-50%, -50%)';
+        mapContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        mapContainer.style.border = '2px solid #444';
+        mapContainer.style.padding = '10px';
+        mapContainer.style.zIndex = '1000';
+        mapContainer.style.display = 'none';
+        
+        const canvas = document.createElement('canvas');
+        canvas.id = 'map-canvas';
+        canvas.width = 400;
+        canvas.height = 400;
+        mapContainer.appendChild(canvas);
+        
+        document.body.appendChild(mapContainer);
+    }
+    
+    if (mapContainer.style.display === 'none') {
+        mapContainer.style.display = 'block';
+        drawMap();
+    } else {
+        mapContainer.style.display = 'none';
+    }
+}
+
+function drawMap() {
+    const canvas = document.getElementById('map-canvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = game.dungeon.width;
+    const height = game.dungeon.height;
+    const cellSize = canvas.width / width;
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw walls and floor
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            if (dungeonMap[y][x] === 1) {
+                ctx.fillStyle = '#444'; // Wall
+            } else {
+                ctx.fillStyle = '#111'; // Floor
+            }
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+    }
+    
+    // Draw Player
+    const playerGridX = Math.floor(game.player.position.x / game.dungeon.cellSize);
+    const playerGridY = Math.floor(game.player.position.z / game.dungeon.cellSize);
+    ctx.fillStyle = '#0f0';
+    ctx.beginPath();
+    ctx.arc(playerGridX * cellSize + cellSize/2, playerGridY * cellSize + cellSize/2, cellSize/3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw Ladder
+    if (game.ladderPosition) {
+        ctx.fillStyle = '#ff0';
+        ctx.fillRect(game.ladderPosition.x * cellSize + cellSize/4, game.ladderPosition.y * cellSize + cellSize/4, cellSize/2, cellSize/2);
+    }
+    
+    // Draw Monsters
+    ctx.fillStyle = '#f00';
+    for (let monster of game.monsters) {
+        ctx.beginPath();
+        ctx.arc(monster.gridX * cellSize + cellSize/2, monster.gridY * cellSize + cellSize/2, cellSize/4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+export function updateFloatingLabels() {
+    const labelsContainer = document.getElementById('floating-labels');
+    if (!labelsContainer) return;
+    
+    // Clear existing labels
+    labelsContainer.innerHTML = '';
+    
+    // Check for ladder proximity
+    if (game.ladderPosition) {
+        const playerGridX = Math.floor(game.player.position.x / game.dungeon.cellSize);
+        const playerGridY = Math.floor(game.player.position.z / game.dungeon.cellSize);
+        const ladderX = game.ladderPosition.x;
+        const ladderY = game.ladderPosition.y;
+        
+        const dx = ladderX - playerGridX;
+        const dy = ladderY - playerGridY;
+        
+        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
+            let facingCorrect = false;
+            
+            if (dx === 0 && dy === 0) {
+                // On same tile
+                facingCorrect = true;
+            } else {
+                // Adjacent tile - must face towards ladder
+                // game.player.facing: 0=north (-Z), 1=east (+X), 2=south (+Z), 3=west (-X)
+                // dy corresponds to Z difference (ladderY - playerY)
+                
+                if (dx === 1 && dy === 0) { // Ladder is East
+                    if (game.player.facing === 1) facingCorrect = true;
+                } else if (dx === -1 && dy === 0) { // Ladder is West
+                    if (game.player.facing === 3) facingCorrect = true;
+                } else if (dx === 0 && dy === 1) { // Ladder is South
+                    if (game.player.facing === 2) facingCorrect = true;
+                } else if (dx === 0 && dy === -1) { // Ladder is North
+                    if (game.player.facing === 0) facingCorrect = true;
+                }
+            }
+
+            if (facingCorrect) {
+                const label = document.createElement('div');
+                label.className = 'floating-label';
+                label.textContent = "Press E to Climb";
+                label.style.position = 'absolute';
+                label.style.left = '50%';
+                label.style.top = '40%';
+                label.style.transform = 'translate(-50%, -50%)';
+                label.style.color = '#ffff00';
+                label.style.fontSize = '24px';
+                label.style.fontWeight = 'bold';
+                label.style.textShadow = '0 0 5px #000';
+                labelsContainer.appendChild(label);
+            }
+        }
+    }
+
+    // Only show monster/item labels when Alt is pressed
+    if (!game.controls.altPressed) {
+        return;
+    }
+    
+    // Add labels for visible monsters
+    for (let monster of game.monsters) {
+        if (isObjectVisible(monster.mesh.position)) {
+            const labelPos = monster.mesh.position.clone();
+            labelPos.y += 2.0; // Position above monster
+            
+            const screenPos = get2DPosition(labelPos);
+            
+            // Check if in front of camera and on screen
+            if (screenPos.visible && screenPos.x >= 0 && screenPos.x <= window.innerWidth && 
+                screenPos.y >= 0 && screenPos.y <= window.innerHeight) {
+                const distance = Math.sqrt(
+                    Math.pow(monster.mesh.position.x - game.player.position.x, 2) +
+                    Math.pow(monster.mesh.position.z - game.player.position.z, 2)
+                );
+                
+                const label = document.createElement('div');
+                label.className = 'floating-label monster-label';
+                label.style.left = screenPos.x + 'px';
+                label.style.top = screenPos.y + 'px';
+                label.textContent = `${getMonsterName(monster.type)} [${getDifficultyText(monster.difficulty)}]`;
+                
+                // Scale based on distance (closer = bigger)
+                const scale = Math.max(0.5, Math.min(1.5, 10 / distance));
+                label.style.transform = `translate(-50%, -100%) scale(${scale})`;
+                
+                // Fade based on distance
+                const opacity = Math.max(0.5, 1 - distance / 25);
+                label.style.opacity = opacity;
+                
+                labelsContainer.appendChild(label);
+            }
+        }
+    }
+    
+    // Add labels for visible treasures
+    for (let treasure of game.treasures) {
+        if (!treasure.collected && isObjectVisible(treasure.mesh.position)) {
+            const labelPos = treasure.mesh.position.clone();
+            labelPos.y += 1.2; // Position above treasure
+            
+            const screenPos = get2DPosition(labelPos);
+            
+            // Check if in front of camera and on screen
+            if (screenPos.visible && screenPos.x >= 0 && screenPos.x <= window.innerWidth && 
+                screenPos.y >= 0 && screenPos.y <= window.innerHeight) {
+                const distance = Math.sqrt(
+                    Math.pow(treasure.mesh.position.x - game.player.position.x, 2) +
+                    Math.pow(treasure.mesh.position.z - game.player.position.z, 2)
+                );
+                
+                const label = document.createElement('div');
+                label.className = 'floating-label treasure-label';
+                label.style.left = screenPos.x + 'px';
+                label.style.top = screenPos.y + 'px';
+                const treasureName = treasure.type.name.charAt(0).toUpperCase() + treasure.type.name.slice(1);
+                label.textContent = `${treasureName} (${treasure.type.value}g)`;
+                
+                // Scale based on distance (closer = bigger)
+                const scale = Math.max(0.5, Math.min(1.5, 10 / distance));
+                label.style.transform = `translate(-50%, -100%) scale(${scale})`;
+                
+                // Fade based on distance
+                const opacity = Math.max(0.5, 1 - distance / 25);
+                label.style.opacity = opacity;
+                
+                labelsContainer.appendChild(label);
+            }
+        }
+    }
+}
 
 // Log a message to the screen
 export function logMessage(text, type = 'normal') {
@@ -159,91 +373,7 @@ export function updateDebugWindow() {
     debugWindow.innerHTML = html;
 }
 
-// Update floating labels each frame
-export function updateFloatingLabels() {
-    const labelsContainer = document.getElementById('floating-labels');
-    if (!labelsContainer) return;
-    
-    // Only show labels when Alt is pressed
-    if (!game.controls.altPressed) {
-        labelsContainer.innerHTML = '';
-        return;
-    }
-    
-    // Clear existing labels
-    labelsContainer.innerHTML = '';
-    
-    // Add labels for visible monsters
-    for (let monster of game.monsters) {
-        if (isObjectVisible(monster.mesh.position)) {
-            const labelPos = monster.mesh.position.clone();
-            labelPos.y += 2.0; // Position above monster
-            
-            const screenPos = get2DPosition(labelPos);
-            
-            // Check if in front of camera and on screen
-            if (screenPos.visible && screenPos.x >= 0 && screenPos.x <= window.innerWidth && 
-                screenPos.y >= 0 && screenPos.y <= window.innerHeight) {
-                const distance = Math.sqrt(
-                    Math.pow(monster.mesh.position.x - game.player.position.x, 2) +
-                    Math.pow(monster.mesh.position.z - game.player.position.z, 2)
-                );
-                
-                const label = document.createElement('div');
-                label.className = 'floating-label monster-label';
-                label.style.left = screenPos.x + 'px';
-                label.style.top = screenPos.y + 'px';
-                label.textContent = `${getMonsterName(monster.type)} [${getDifficultyText(monster.difficulty)}]`;
-                
-                // Scale based on distance (closer = bigger)
-                const scale = Math.max(0.5, Math.min(1.5, 10 / distance));
-                label.style.transform = `translate(-50%, -100%) scale(${scale})`;
-                
-                // Fade based on distance
-                const opacity = Math.max(0.5, 1 - distance / 25);
-                label.style.opacity = opacity;
-                
-                labelsContainer.appendChild(label);
-            }
-        }
-    }
-    
-    // Add labels for visible treasures
-    for (let treasure of game.treasures) {
-        if (!treasure.collected && isObjectVisible(treasure.mesh.position)) {
-            const labelPos = treasure.mesh.position.clone();
-            labelPos.y += 1.2; // Position above treasure
-            
-            const screenPos = get2DPosition(labelPos);
-            
-            // Check if in front of camera and on screen
-            if (screenPos.visible && screenPos.x >= 0 && screenPos.x <= window.innerWidth && 
-                screenPos.y >= 0 && screenPos.y <= window.innerHeight) {
-                const distance = Math.sqrt(
-                    Math.pow(treasure.mesh.position.x - game.player.position.x, 2) +
-                    Math.pow(treasure.mesh.position.z - game.player.position.z, 2)
-                );
-                
-                const label = document.createElement('div');
-                label.className = 'floating-label treasure-label';
-                label.style.left = screenPos.x + 'px';
-                label.style.top = screenPos.y + 'px';
-                const treasureName = treasure.type.name.charAt(0).toUpperCase() + treasure.type.name.slice(1);
-                label.textContent = `${treasureName} (${treasure.type.value}g)`;
-                
-                // Scale based on distance (closer = bigger)
-                const scale = Math.max(0.5, Math.min(1.5, 10 / distance));
-                label.style.transform = `translate(-50%, -100%) scale(${scale})`;
-                
-                // Fade based on distance
-                const opacity = Math.max(0.5, 1 - distance / 25);
-                label.style.opacity = opacity;
-                
-                labelsContainer.appendChild(label);
-            }
-        }
-    }
-}
+
 
 export function updateDebugArrows() {
     for (let decoration of game.decorations) {

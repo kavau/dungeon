@@ -1,6 +1,182 @@
 import { game, dungeonMap } from './state.js';
 import { logMessage } from './ui.js';
-import { spawnSingleMonster } from './entities/monster.js';
+import { spawnSingleMonster, spawnMonsters } from './entities/monster.js';
+import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder } from './dungeon.js';
+import { spawnTreasures } from './entities/items.js';
+import { spawnDecorations, spawnGlowWorms, createDecoration, DECORATION_TYPES } from './entities/decoration.js';
+
+export function setupLevel() {
+    // Set player starting position (find first open space)
+    const cellSize = game.dungeon.cellSize;
+    
+    let px, py;
+    
+    if (game.dungeon.level === 5) {
+        // Special setup for Level 5 (The Awakening)
+        // Place Wyrm in the center of the cavern
+        const wx = Math.floor(game.dungeon.width / 2);
+        const wy = Math.floor(game.dungeon.height / 2);
+
+        // Spawn Wyrm
+        createDecoration(wx, wy, DECORATION_TYPES.WYRM_CARCASS);
+        
+        // Spawn Dead Adventurers around it (more prominent placement)
+        const adventurerOffsets = [
+            {x: 2, y: 1}, {x: -2, y: -1}, 
+            {x: 1, y: -2}, {x: -1, y: 2},
+            {x: 3, y: 0}, {x: -3, y: 0},
+            {x: 0, y: 3}, {x: 0, y: -3}
+        ];
+        
+        for (let offset of adventurerOffsets) {
+            // Check bounds
+            const ax = wx + offset.x;
+            const ay = wy + offset.y;
+            if (ax >= 0 && ax < game.dungeon.width && ay >= 0 && ay < game.dungeon.height) {
+                if (dungeonMap[ay][ax] === 0) {
+                    createDecoration(ax, ay, DECORATION_TYPES.DEAD_ADVENTURER);
+                }
+            }
+        }
+        
+        // Spawn Player near Wyrm with clear sight
+        // Place player south of the Wyrm (so they look North at it)
+        px = wx;
+        py = wy + 5;
+        
+        // Ensure player spot is valid
+        if (dungeonMap[py][px] !== 0) {
+             // Fallback to nearest open spot
+             let found = false;
+             for(let r=1; r<5; r++) {
+                 for(let dx=-r; dx<=r; dx++) {
+                     for(let dy=-r; dy<=r; dy++) {
+                         if(dungeonMap[wy+dy][wx+dx] === 0) {
+                             px = wx+dx;
+                             py = wy+dy;
+                             found = true;
+                             break;
+                         }
+                     }
+                     if(found) break;
+                 }
+                 if(found) break;
+             }
+        }
+
+    } else {
+        // Normal random spawn for other levels
+        let attempts = 0;
+        do {
+            px = Math.floor(Math.random() * game.dungeon.width);
+            py = Math.floor(Math.random() * game.dungeon.height);
+            attempts++;
+        } while (dungeonMap[py][px] !== 0 && attempts < 1000);
+        
+        // Fallback if random fails
+        if (dungeonMap[py][px] !== 0) {
+            for(let y=0; y<game.dungeon.height; y++) {
+                for(let x=0; x<game.dungeon.width; x++) {
+                    if(dungeonMap[y][x] === 0) {
+                        px = x;
+                        py = y;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    game.player.position.x = px * cellSize + cellSize / 2;
+    game.player.position.z = py * cellSize + cellSize / 2;
+    
+    // Set initial rotation
+    if (game.dungeon.level === 5) {
+        // Face North (towards Wyrm)
+        game.player.facing = 0; // North
+        game.player.rotation.y = Math.PI; // 180 degrees (Three.js coordinate system might vary, but usually PI is North if 0 is South, or vice versa. Let's assume PI faces -Z if 0 faces +Z)
+        // Actually, let's check standard Three.js: 0 is usually +Z (South). PI is -Z (North).
+    } else {
+        // Face East
+        game.player.facing = 1; // East
+        game.player.rotation.y = -Math.PI / 2;
+    }
+    
+    game.player.targetPosition.copy(game.player.position);
+    game.player.startRotation = game.player.rotation.y;
+    game.player.targetRotation = game.player.rotation.y;
+    game.camera.position.copy(game.player.position);
+    
+    // Create special inscription on wall in front of player
+    createStartingInscription(px, py, cellSize);
+    
+    // Spawn monsters
+    spawnMonsters();
+    
+    // Spawn treasures
+    spawnTreasures();
+    
+    // Spawn doors first (they block all decorations)
+    spawnDoors();
+    
+    // Spawn decorations (respects doors and existing decorations)
+    spawnDecorations();
+    
+    // Spawn glow worms
+    spawnGlowWorms();
+    
+    // Spawn ladder to next level
+    spawnLadder();
+    
+    logMessage(`Welcome to Level ${game.dungeon.level}`);
+}
+
+export function nextLevel() {
+    if (game.isTransitioning) return;
+    game.isTransitioning = true;
+
+    console.log(`Current Level: ${game.dungeon.level}. Descending...`);
+    game.dungeon.level--;
+    console.log(`New Level: ${game.dungeon.level}`);
+    
+    if (game.dungeon.level < 1) {
+        // Win condition
+        console.log("Win condition met!");
+        document.getElementById('win-screen').style.display = 'flex';
+        game.won = true;
+        return;
+    }
+    
+    logMessage(`Descending to Level ${game.dungeon.level}...`);
+    
+    // Clear current level
+    clearDungeon();
+    
+    // Generate new level
+    generateProceduralMap();
+    generateDungeon();
+    
+    setupLevel();
+    
+    // Small delay before allowing next transition
+    setTimeout(() => {
+        game.isTransitioning = false;
+    }, 1000);
+}
+
+export function teleportToLevel(level) {
+    logMessage(`Teleporting to Level ${level}...`, "combat");
+    game.dungeon.level = level;
+    
+    // Clear current level
+    clearDungeon();
+    
+    // Generate new level
+    generateProceduralMap();
+    generateDungeon();
+    
+    setupLevel();
+}
 
 export function checkCollision(position) {
     const playerRadius = 0.3;
@@ -9,9 +185,13 @@ export function checkCollision(position) {
     for (let wall of game.dungeon.walls) {
         const dx = position.x - wall.position.x;
         const dz = position.z - wall.position.z;
-        const distance = Math.sqrt(dx * dx + dz * dz);
-        const minDistance = wall.size / 2 + playerRadius;
         
+        // Use wall width/height (assuming square walls for now based on cellSize)
+        // wall.width is cellSize
+        const halfSize = wall.width / 2;
+        const minDistance = halfSize + playerRadius;
+        
+        // AABB collision check (Axis-Aligned Bounding Box)
         if (Math.abs(dx) < minDistance && Math.abs(dz) < minDistance) {
             return 'wall';
         }

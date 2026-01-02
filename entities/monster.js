@@ -1,6 +1,6 @@
 import { game, dungeonMap } from '../state.js';
 import { logMessage, updateHealthDisplay, gameOver } from '../ui.js';
-import { createTorch } from '../items.js';
+import { createTorch } from './items.js';
 import { createBloodStain } from '../effects.js';
 
 export const MONSTER_TYPES = {

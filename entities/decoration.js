@@ -805,6 +805,9 @@ export function createDecoration(gridX, gridY, type) {
             swordGroup.rotation.y = Math.random() * Math.PI;
             bodyGroup.add(swordGroup);
             
+            // Scale up to make them more prominent
+            bodyGroup.scale.set(2.5, 2.5, 2.5);
+
             decorationGroup.add(bodyGroup);
             break;
         }
@@ -890,38 +893,7 @@ export function spawnDecorations() {
     const decoratedCells = new Set();
 
     // --- SPECIAL DECORATIONS ---
-    
-    // 1. Wyrm Carcass in the center of the 5x5 room (top-left)
-    // Room is x:1-5, y:1-5. Center is 3,3.
-    createDecoration(3, 3, DECORATION_TYPES.WYRM_CARCASS);
-    decoratedCells.add(`3,3`);
-    
-    // 2. Dead Adventurers around the Wyrm
-    createDecoration(2, 3, DECORATION_TYPES.DEAD_ADVENTURER);
-    decoratedCells.add(`2,3`);
-    createDecoration(4, 3, DECORATION_TYPES.DEAD_ADVENTURER);
-    decoratedCells.add(`4,3`);
-    createDecoration(3, 4, DECORATION_TYPES.DEAD_ADVENTURER);
-    decoratedCells.add(`3,4`);
-    
-    // 3. Escape Ladder in the bottom-right corner
-    // Assuming walls are at width-1 and height-1, the last walkable cell is width-2, height-2
-    // But let's check if it's a floor. If not, search nearby.
-    let ladderX = game.dungeon.width - 2;
-    let ladderY = game.dungeon.height - 2;
-    
-    // Ensure it's a floor tile
-    while (dungeonMap[ladderY][ladderX] === 1 && ladderX > 0 && ladderY > 0) {
-        if (ladderX > ladderY) ladderX--;
-        else ladderY--;
-    }
-    
-    createDecoration(ladderX, ladderY, DECORATION_TYPES.LADDER);
-    decoratedCells.add(`${ladderX},${ladderY}`);
-    
-    // Store ladder position for win condition check
-    game.ladderPosition = { x: ladderX, y: ladderY };
-    
+    // Handled in setupLevel() or dungeon.js
     // ---------------------------
     
     // Track cells with doors (no decorations allowed, including inscriptions)

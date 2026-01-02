@@ -1,8 +1,40 @@
 import { game } from './state.js';
-import { checkCollision, advanceTurn, checkAndSpawnMonsters } from './gameLoop.js';
+import { checkCollision, advanceTurn, checkAndSpawnMonsters, nextLevel } from './gameLoop.js';
 import { logMessage, updateHealthDisplay } from './ui.js';
 import { monsterShouldBleed, getMonsterBloodSize, createBloodStain } from './effects.js';
-import { createTreasure, TREASURE_TYPES } from './items.js';
+import { createTreasure, TREASURE_TYPES } from './entities/items.js';
+
+export function interact() {
+    // Prevent rapid interaction
+    const now = Date.now();
+    if (game.lastInteractionTime && now - game.lastInteractionTime < 500) return;
+    game.lastInteractionTime = now;
+
+    // Try door first
+    if (interactWithDoor()) return;
+    
+    // Try ladder
+    interactWithLadder();
+}
+
+export function interactWithLadder() {
+    if (!game.ladderPosition) return;
+    
+    const cellSize = game.dungeon.cellSize;
+    const playerGridX = Math.floor(game.player.position.x / cellSize);
+    const playerGridZ = Math.floor(game.player.position.z / cellSize);
+    
+    // Check if player is on the ladder or adjacent to it
+    const dx = Math.abs(playerGridX - game.ladderPosition.x);
+    const dz = Math.abs(playerGridZ - game.ladderPosition.y);
+    
+    if (dx <= 1 && dz <= 1) {
+        logMessage("Climbing ladder...", "item");
+        nextLevel();
+    } else {
+        logMessage("There is nothing to interact with here.");
+    }
+}
 
 // Move player forward one grid square
 // Interact with nearby door (open/close)
@@ -49,9 +81,10 @@ export function interactWithDoor() {
                 logMessage('You closed the door.', 'door');
             }
             
-            return; // Only interact with one door
+            return true; // Interaction successful
         }
     }
+    return false;
 }
 
 export function movePlayerForward() {
@@ -361,37 +394,4 @@ export function updatePlayer(deltaTime) {
         );
     }
     // No else block needed as light is attached to camera
-
-    // Check for win condition (Ladder)
-    if (game.ladderPosition && !game.won) {
-        const cellSize = game.dungeon.cellSize;
-        const playerGridX = Math.floor(game.player.position.x / cellSize);
-        const playerGridZ = Math.floor(game.player.position.z / cellSize);
-        
-        if (playerGridX === game.ladderPosition.x && playerGridZ === game.ladderPosition.y) {
-            game.won = true;
-            game.player.canMove = false;
-            
-            // Show win screen
-            setTimeout(() => {
-                const winScreen = document.getElementById('win-screen');
-                if (winScreen) {
-                    winScreen.style.display = 'flex';
-                    
-                    // Add key listener to reload
-                    const reloadHandler = (e) => {
-                        e.preventDefault();
-                        e.stopImmediatePropagation();
-                        location.reload();
-                    };
-                    
-                    // Small delay before allowing reload to prevent accidental skips
-                    setTimeout(() => {
-                        document.addEventListener('keydown', reloadHandler, { once: true });
-                        document.addEventListener('click', reloadHandler, { once: true });
-                    }, 1000);
-                }
-            }, 500);
-        }
-    }
 }

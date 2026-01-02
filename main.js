@@ -1,14 +1,12 @@
 import { game, dungeonMap } from './state.js';
-import { generateDungeon, spawnDoors, createStartingInscription } from './dungeon.js';
-import { spawnMonsters } from './entities/monster.js';
-import { spawnTreasures } from './items.js';
-import { spawnDecorations, spawnGlowWorms } from './entities/decoration.js';
+import { generateDungeon, generateProceduralMap } from './dungeon.js';
 import { setupControls } from './input.js';
 import { updatePlayer } from './player.js';
 import { updateMonsters } from './entities/monster.js';
 import { updateCritters, updateDecorations } from './entities/decoration.js';
-import { updateTreasures } from './items.js';
+import { updateTreasures } from './entities/items.js';
 import { updateFloatingLabels, updateDebugWindow, updateHealthDisplay, updateWealthDisplay } from './ui.js';
+import { setupLevel } from './gameLoop.js';
 
 function init() {
     // Create scene
@@ -61,51 +59,14 @@ function init() {
         color: new THREE.Color(0xffaa00)
     };
     
-    // Generate dungeon
+    // Reset level to 5
+    game.dungeon.level = 5;
+    
+    // Generate initial dungeon
+    generateProceduralMap();
     generateDungeon();
 
-    // Set player starting position (find first open space)
-    const cellSize = game.dungeon.cellSize;
-    let startFound = false;
-    for (let y = 0; y < dungeonMap.length; y++) {
-        for (let x = 0; x < dungeonMap[y].length; x++) {
-            if (dungeonMap[y][x] === 0) {
-                game.player.position.x = x * cellSize + cellSize / 2;
-                game.player.position.z = y * cellSize + cellSize / 2;
-                
-                // Set initial rotation to East (90 degrees right)
-                game.player.facing = 1; // East
-                game.player.rotation.y = -Math.PI / 2;
-                
-                game.player.targetPosition.copy(game.player.position);
-                game.player.startRotation = game.player.rotation.y;
-                game.player.targetRotation = game.player.rotation.y;
-                game.camera.position.copy(game.player.position);
-                
-                // Create special inscription on wall in front of player
-                createStartingInscription(x, y, cellSize);
-                
-                // Spawn monsters
-                spawnMonsters();
-                
-                // Spawn treasures
-                spawnTreasures();
-                
-                // Spawn doors first (they block all decorations)
-                spawnDoors();
-                
-                // Spawn decorations (respects doors and existing decorations)
-                spawnDecorations();
-                
-                // Spawn glow worms
-                spawnGlowWorms();
-                
-                startFound = true;
-                break;
-            }
-        }
-        if (startFound) break;
-    }
+    setupLevel();
     
     // Setup controls
     setupControls();
@@ -117,7 +78,8 @@ function init() {
     // Handle window resize
     window.addEventListener('resize', onWindowResize);
     
-    // Start animation loop
+    // Start game loop
+    // game.started = true; // Removed to allow intro screen to work
     animate();
 }
 
@@ -132,13 +94,15 @@ function animate() {
     
     const deltaTime = game.clock.getDelta();
     
-    updatePlayer(deltaTime);
-    updateMonsters(deltaTime);
-    updateCritters(deltaTime);
-    updateTreasures(deltaTime);
-    updateDecorations();
-    updateFloatingLabels();
-    updateDebugWindow();
+    if (game.started) {
+        updatePlayer(deltaTime);
+        updateMonsters(deltaTime);
+        updateCritters(deltaTime);
+        updateTreasures(deltaTime);
+        updateDecorations();
+        updateFloatingLabels();
+        updateDebugWindow();
+    }
     
     game.renderer.render(game.scene, game.camera);
 }
