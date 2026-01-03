@@ -1,69 +1,25 @@
 import { game, dungeonMap } from './state.js';
 import { logMessage } from './ui.js';
 import { spawnSingleMonster, spawnMonsters } from './entities/monster.js';
-import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder, LEVEL_THEMES } from './dungeon.js';
+import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder } from './dungeon.js';
 import { spawnTreasures } from './entities/items.js';
 import { spawnDecorations, spawnGlowWorms, createDecoration, DECORATION_TYPES } from './entities/decoration.js';
+import { LEVEL_CONFIG } from './levelConfig.js';
 
 export function setupLevel() {
     // Set player starting position (find first open space)
     const cellSize = game.dungeon.cellSize;
+    const level = game.dungeon.level || 1;
+    const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
     
     let px, py;
+    let facing = 1; // Default East
     
-    if (game.dungeon.level === 5) {
-        // Special setup for Level 5 (The Awakening)
-        // Place Wyrm in the center of the cavern
-        const wx = Math.floor(game.dungeon.width / 2);
-        const wy = Math.floor(game.dungeon.height / 2);
-
-        // Spawn Wyrm
-        createDecoration(wx, wy, DECORATION_TYPES.WYRM_CARCASS);
-        
-        // Spawn Dead Adventurers around it (more prominent placement)
-        const adventurerOffsets = [
-            {x: 2, y: 1}, {x: -2, y: -1}, 
-            {x: 1, y: -2}, {x: -1, y: 2},
-            {x: 3, y: 0}, {x: -3, y: 0},
-            {x: 0, y: 3}, {x: 0, y: -3}
-        ];
-        
-        for (let offset of adventurerOffsets) {
-            // Check bounds
-            const ax = wx + offset.x;
-            const ay = wy + offset.y;
-            if (ax >= 0 && ax < game.dungeon.width && ay >= 0 && ay < game.dungeon.height) {
-                if (dungeonMap[ay][ax] === 0) {
-                    createDecoration(ax, ay, DECORATION_TYPES.DEAD_ADVENTURER);
-                }
-            }
-        }
-        
-        // Spawn Player near Wyrm with clear sight
-        // Place player south of the Wyrm (so they look North at it)
-        px = wx;
-        py = wy + 5;
-        
-        // Ensure player spot is valid
-        if (dungeonMap[py][px] !== 0) {
-             // Fallback to nearest open spot
-             let found = false;
-             for(let r=1; r<5; r++) {
-                 for(let dx=-r; dx<=r; dx++) {
-                     for(let dy=-r; dy<=r; dy++) {
-                         if(dungeonMap[wy+dy][wx+dx] === 0) {
-                             px = wx+dx;
-                             py = wy+dy;
-                             found = true;
-                             break;
-                         }
-                     }
-                     if(found) break;
-                 }
-                 if(found) break;
-             }
-        }
-
+    if (config.setup) {
+        const result = config.setup(game, dungeonMap, { createDecoration, DECORATION_TYPES });
+        px = result.x;
+        py = result.y;
+        facing = result.facing;
     } else {
         // Normal random spawn for other levels
         let attempts = 0;
@@ -91,14 +47,11 @@ export function setupLevel() {
     game.player.position.z = py * cellSize + cellSize / 2;
     
     // Set initial rotation
-    if (game.dungeon.level === 5) {
-        // Face North (towards Wyrm)
-        game.player.facing = 0; // North
-        game.player.rotation.y = 0; // 0 is North (-Z) in our coordinate system
+    game.player.facing = facing;
+    if (facing === 0) {
+        game.player.rotation.y = 0; // North
     } else {
-        // Face East
-        game.player.facing = 1; // East
-        game.player.rotation.y = -Math.PI / 2;
+        game.player.rotation.y = -Math.PI / 2; // East
     }
     
     game.player.targetPosition.copy(game.player.position);
@@ -128,8 +81,7 @@ export function setupLevel() {
     spawnLadder();
     
     if (game.started) {
-        const level = game.dungeon.level;
-        const theme = LEVEL_THEMES[level] || LEVEL_THEMES[1];
+        const theme = config; // config has name, title, description
         
         const titleEl = document.getElementById('level-title');
         const descEl = document.getElementById('level-desc');

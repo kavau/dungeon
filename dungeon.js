@@ -1,85 +1,19 @@
 import { game, dungeonMap } from './state.js';
 import { createDecoration, DECORATION_TYPES } from './entities/decoration.js';
+import { LEVEL_CONFIG } from './levelConfig.js';
 import { 
     createDungeonVisuals, 
     createDoorVisuals, 
     createStartingInscriptionVisuals 
 } from './visuals/dungeonRenderer.js';
 
-export const LEVEL_THEMES = {
-    1: {
-        name: 'ruins',
-        title: 'The Ruins',
-        description: 'You are close to the surface. Roots break through the cracked stone walls. A faint breeze carries the scent of fresh air... and danger.',
-        wallBase: { r: 74, g: 63, b: 53 }, // Brownish grey
-        floorBase: '#2a2a2a',
-        floorTile: 42,
-        ceilingBase: '#4a4a4a',
-        mossy: true,
-        algorithm: 'rooms',
-        fogColor: 0x000000,
-        fogDist: 30
-    },
-    2: {
-        name: 'sewers',
-        title: 'The Sewers',
-        description: 'The stench is overpowering. Green slime coats the walls and floor. You can hear the skittering of unseen creatures in the dark.',
-        wallBase: { r: 40, g: 50, b: 40 }, // Dark green/grey
-        floorBase: '#1a2a1a',
-        floorTile: '#2a3a2a',
-        ceilingBase: '#1a2a1a',
-        mossy: true,
-        algorithm: 'corridors',
-        fogColor: 0x051005, // Very dark green
-        fogDist: 25
-    },
-    3: {
-        name: 'temple',
-        title: 'The Sunken Temple',
-        description: 'Golden ornaments glint in the shadows. This place was once holy, but now only echoes of dark rituals remain.',
-        wallBase: { r: 180, g: 160, b: 120 }, // Sandstone
-        floorBase: '#5a4a3a',
-        floorTile: '#8a7a6a',
-        ceilingBase: '#6a5a4a',
-        mossy: false,
-        algorithm: 'bsp',
-        fogColor: 0x2a2010, // Dark gold/brown
-        fogDist: 40
-    },
-    4: {
-        name: 'catacombs',
-        title: 'The Catacombs',
-        description: 'Rows of silent tombs line the walls. The air is dry and smells of dust and decay. You feel like you are being watched.',
-        wallBase: { r: 60, g: 60, b: 60 }, // Dark grey
-        floorBase: '#202020',
-        floorTile: '#303030',
-        ceilingBase: '#202020',
-        mossy: false,
-        algorithm: 'maze',
-        fogColor: 0x101010,
-        fogDist: 20 // Claustrophobic
-    },
-    5: {
-        name: 'caves',
-        title: 'The Deep Caves',
-        description: 'The air is thick with moisture and the smell of ancient earth. Bioluminescent fungi provide the only light in this natural labyrinth.',
-        wallBase: { r: 50, g: 45, b: 40 }, // Natural rock
-        floorBase: '#2a2520',
-        floorTile: '#3a3530',
-        ceilingBase: '#2a2520',
-        mossy: false,
-        algorithm: 'cellular',
-        fogColor: 0x000000,
-        fogDist: 25
-    }
-};
-
 export function generateDungeon() {
     const cellSize = game.dungeon.cellSize;
     const level = game.dungeon.level || 1;
-    const theme = LEVEL_THEMES[level] || LEVEL_THEMES[1];
+    const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+    const theme = config.theme;
     
-    console.log(`Generating Level ${level} with theme: ${theme.name}`);
+    console.log(`Generating Level ${level} with theme: ${config.name}`);
 
     // Update Fog
     if (game.scene.fog) {
@@ -254,7 +188,8 @@ export function clearDungeon() {
 
 export function generateProceduralMap(width = game.dungeon.width, height = game.dungeon.height) {
     const level = game.dungeon.level || 1;
-    const theme = LEVEL_THEMES[level] || LEVEL_THEMES[1];
+    const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+    const theme = config.theme;
     
     // Initialize with walls
     const map = [];

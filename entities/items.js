@@ -1,6 +1,7 @@
 import { game, dungeonMap } from '../state.js';
 import { logMessage, updateWealthDisplay } from '../ui.js';
 import { createTreasureVisuals } from '../visuals/itemRenderer.js';
+import { LEVEL_CONFIG } from '../levelConfig.js';
 
 export const TREASURE_TYPES = {
     CHEST: { name: 'chest', value: 100, color: 0x8B4513 },
@@ -128,41 +129,14 @@ export function spawnTreasures() {
                 const rand = Math.random();
                 let treasureType;
                 const level = game.dungeon.level || 1;
+                const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+                const probs = config.items;
 
-                // Default probabilities (Level 1)
-                let pChest = 0.15;
-                let pCoin = 0.50; // Cumulative (0.15 + 0.35)
-                let pTrinket = 0.75; // Cumulative (0.50 + 0.25)
-                // Remainder is Gem
-
-                switch(level) {
-                    case 2: // Sewers - More junk, less gold
-                        pChest = 0.10;
-                        pCoin = 0.30;
-                        pTrinket = 0.80;
-                        break;
-                    case 3: // Temple - High wealth
-                        pChest = 0.25;
-                        pCoin = 0.60;
-                        pTrinket = 0.70;
-                        break;
-                    case 4: // Catacombs - Ancient trinkets and gems
-                        pChest = 0.15;
-                        pCoin = 0.35;
-                        pTrinket = 0.65;
-                        break;
-                    case 5: // Caves - Raw gems, less manufactured goods
-                        pChest = 0.05;
-                        pCoin = 0.20;
-                        pTrinket = 0.40;
-                        break;
-                }
-
-                if (rand < pChest) {
+                if (rand < probs.chest) {
                     treasureType = TREASURE_TYPES.CHEST;
-                } else if (rand < pCoin) {
+                } else if (rand < probs.coin) {
                     treasureType = TREASURE_TYPES.GOLD_COIN;
-                } else if (rand < pTrinket) {
+                } else if (rand < probs.trinket) {
                     treasureType = TREASURE_TYPES.TRINKET;
                 } else {
                     treasureType = TREASURE_TYPES.GEM;

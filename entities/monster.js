@@ -4,6 +4,7 @@ import { createTorch } from './items.js';
 import { createBloodStain } from '../effects.js';
 import { MONSTER_TYPES } from './monsterTypes.js';
 import { createMonsterVisuals } from '../visuals/monsterRenderer.js';
+import { LEVEL_CONFIG } from '../levelConfig.js';
 
 export { MONSTER_TYPES };
 
@@ -471,42 +472,8 @@ export function spawnMonsters() {
     let spawned = 0;
     
     const level = game.dungeon.level || 1;
-    let allowedTypes = [];
-
-    switch(level) {
-        case 1: // Ruins
-            allowedTypes = [
-                MONSTER_TYPES.RAT, MONSTER_TYPES.BAT, MONSTER_TYPES.SPIDER, 
-                MONSTER_TYPES.BANDIT, MONSTER_TYPES.PLANT, MONSTER_TYPES.SKELETON
-            ];
-            break;
-        case 2: // Sewers
-            allowedTypes = [
-                MONSTER_TYPES.RAT, MONSTER_TYPES.SLIME, MONSTER_TYPES.JELLY, 
-                MONSTER_TYPES.SERPENT, MONSTER_TYPES.ZOMBIE
-            ];
-            break;
-        case 3: // Temple
-            allowedTypes = [
-                MONSTER_TYPES.CULTIST, MONSTER_TYPES.GARGOYLE, MONSTER_TYPES.IMP, 
-                MONSTER_TYPES.MIMIC, MONSTER_TYPES.EYE_BEAST, MONSTER_TYPES.WRAITH
-            ];
-            break;
-        case 4: // Catacombs
-            allowedTypes = [
-                MONSTER_TYPES.SKELETON, MONSTER_TYPES.ZOMBIE, MONSTER_TYPES.GHOST, 
-                MONSTER_TYPES.WRAITH, MONSTER_TYPES.SHADOW, MONSTER_TYPES.MINER
-            ];
-            break;
-        case 5: // Caves
-            allowedTypes = [
-                MONSTER_TYPES.BAT, MONSTER_TYPES.SALAMANDER, MONSTER_TYPES.TROLL, 
-                MONSTER_TYPES.MUSHROOM, MONSTER_TYPES.SCARAB, MONSTER_TYPES.CUBE
-            ];
-            break;
-        default:
-            allowedTypes = Object.values(MONSTER_TYPES);
-    }
+    const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+    const allowedTypes = config.monsters;
     
     // Try to spawn monsters in random walkable spaces
     for (let attempt = 0; attempt < 100 && spawned < numMonsters; attempt++) {
@@ -536,42 +503,8 @@ export function spawnMonsters() {
 export function spawnSingleMonster() {
     const cellSize = game.dungeon.cellSize;
     const level = game.dungeon.level || 1;
-    let allowedTypes = [];
-
-    switch(level) {
-        case 1: // Ruins
-            allowedTypes = [
-                MONSTER_TYPES.RAT, MONSTER_TYPES.BAT, MONSTER_TYPES.SPIDER, 
-                MONSTER_TYPES.BANDIT, MONSTER_TYPES.PLANT, MONSTER_TYPES.SKELETON
-            ];
-            break;
-        case 2: // Sewers
-            allowedTypes = [
-                MONSTER_TYPES.RAT, MONSTER_TYPES.SLIME, MONSTER_TYPES.JELLY, 
-                MONSTER_TYPES.SERPENT, MONSTER_TYPES.ZOMBIE
-            ];
-            break;
-        case 3: // Temple
-            allowedTypes = [
-                MONSTER_TYPES.CULTIST, MONSTER_TYPES.GARGOYLE, MONSTER_TYPES.IMP, 
-                MONSTER_TYPES.MIMIC, MONSTER_TYPES.EYE_BEAST, MONSTER_TYPES.WRAITH
-            ];
-            break;
-        case 4: // Catacombs
-            allowedTypes = [
-                MONSTER_TYPES.SKELETON, MONSTER_TYPES.ZOMBIE, MONSTER_TYPES.GHOST, 
-                MONSTER_TYPES.WRAITH, MONSTER_TYPES.SHADOW, MONSTER_TYPES.MINER
-            ];
-            break;
-        case 5: // Caves
-            allowedTypes = [
-                MONSTER_TYPES.BAT, MONSTER_TYPES.SALAMANDER, MONSTER_TYPES.TROLL, 
-                MONSTER_TYPES.MUSHROOM, MONSTER_TYPES.SCARAB, MONSTER_TYPES.CUBE
-            ];
-            break;
-        default:
-            allowedTypes = Object.values(MONSTER_TYPES);
-    }
+    const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+    const allowedTypes = config.monsters;
     
     // Try to spawn a monster in a random walkable space
     for (let attempt = 0; attempt < 100; attempt++) {

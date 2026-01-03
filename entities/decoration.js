@@ -1,5 +1,6 @@
 import { game, dungeonMap } from '../state.js';
 import { createDecorationVisuals } from '../visuals/decorationRenderer.js';
+import { LEVEL_CONFIG } from '../levelConfig.js';
 
 export const DECORATION_TYPES = {
     PUDDLE: { name: 'puddle', probability: 0.05 },
@@ -105,28 +106,8 @@ export function spawnDecorations() {
                 if (distToPlayer > cellSize * 2) {
                     const nearWall = isNearWall(x, y);
                     const level = game.dungeon.level || 1;
-                    
-                    // Filter allowed decorations based on level
-                    let allowedDecorations = [];
-                    switch(level) {
-                        case 1: // Ruins
-                            allowedDecorations = ['moss_patch', 'puddle', 'spider_web', 'bone_pile'];
-                            break;
-                        case 2: // Sewers
-                            allowedDecorations = ['puddle', 'moss_patch', 'spider_web'];
-                            break;
-                        case 3: // Temple
-                            allowedDecorations = ['wall_inscription', 'bone_pile', 'spider_web'];
-                            break;
-                        case 4: // Catacombs
-                            allowedDecorations = ['bone_pile', 'wall_inscription', 'spider_web', 'moss_patch'];
-                            break;
-                        case 5: // Caves
-                            allowedDecorations = ['stalactite', 'stalagmite', 'mushrooms', 'puddle'];
-                            break;
-                        default:
-                            allowedDecorations = Object.values(DECORATION_TYPES).map(d => d.name);
-                    }
+                    const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+                    const allowedDecorations = config.decorations;
                     
                     // Each decoration type has its own probability
                     for (const decorType of Object.values(DECORATION_TYPES)) {
