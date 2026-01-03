@@ -5,7 +5,7 @@ import { updatePlayer } from './player.js';
 import { updateMonsters } from './entities/monster.js';
 import { updateCritters, updateDecorations } from './entities/decoration.js';
 import { updateTreasures } from './entities/items.js';
-import { updateFloatingLabels, updateDebugWindow, updateHealthDisplay, updateWealthDisplay } from './ui.js';
+import { updateFloatingLabels, updateDebugWindow, updateHealthDisplay, updateWealthDisplay, updateMap } from './ui.js';
 import { setupLevel } from './gameLoop.js';
 
 function init() {
@@ -102,6 +102,7 @@ function animate() {
         updateDecorations();
         updateFloatingLabels();
         updateDebugWindow();
+        updateMap();
     }
     
     game.renderer.render(game.scene, game.camera);

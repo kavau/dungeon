@@ -16,10 +16,10 @@ export function toggleMap() {
         mapContainer = document.createElement('div');
         mapContainer.id = 'map-overlay';
         mapContainer.style.position = 'fixed';
-        mapContainer.style.top = '50%';
-        mapContainer.style.left = '50%';
-        mapContainer.style.transform = 'translate(-50%, -50%)';
-        mapContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+        mapContainer.style.top = '20px';
+        mapContainer.style.right = '20px';
+        mapContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+        mapContainer.style.opacity = '0.7';
         mapContainer.style.border = '2px solid #444';
         mapContainer.style.padding = '10px';
         mapContainer.style.zIndex = '1000';
@@ -85,6 +85,13 @@ function drawMap() {
         ctx.beginPath();
         ctx.arc(monster.gridX * cellSize + cellSize/2, monster.gridY * cellSize + cellSize/2, cellSize/4, 0, Math.PI * 2);
         ctx.fill();
+    }
+}
+
+export function updateMap() {
+    const mapContainer = document.getElementById('map-overlay');
+    if (mapContainer && mapContainer.style.display !== 'none') {
+        drawMap();
     }
 }
 

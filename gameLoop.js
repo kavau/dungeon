@@ -94,8 +94,7 @@ export function setupLevel() {
     if (game.dungeon.level === 5) {
         // Face North (towards Wyrm)
         game.player.facing = 0; // North
-        game.player.rotation.y = Math.PI; // 180 degrees (Three.js coordinate system might vary, but usually PI is North if 0 is South, or vice versa. Let's assume PI faces -Z if 0 faces +Z)
-        // Actually, let's check standard Three.js: 0 is usually +Z (South). PI is -Z (North).
+        game.player.rotation.y = 0; // 0 is North (-Z) in our coordinate system
     } else {
         // Face East
         game.player.facing = 1; // East
