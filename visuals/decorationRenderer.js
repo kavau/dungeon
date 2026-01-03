@@ -165,6 +165,11 @@ export function createDecorationVisuals(type, gridX, gridY) {
             // Cluster of glowing mushrooms
             const numMushrooms = 3 + Math.floor(Math.random() * 7);
             
+            // Add a central light for the cluster
+            const clusterLight = new THREE.PointLight(0x44ff44, 1.5, 5);
+            clusterLight.position.set(0, 0.5, 0);
+            decorationGroup.add(clusterLight);
+            
             for (let i = 0; i < numMushrooms; i++) {
                 const height = 0.1 + Math.random() * 0.2;
                 const capRadius = 0.05 + Math.random() * 0.1;
@@ -184,7 +189,7 @@ export function createDecorationVisuals(type, gridX, gridY) {
                 const capMat = new THREE.MeshStandardMaterial({
                     color: 0x44ff44,
                     emissive: 0x228822,
-                    emissiveIntensity: 0.5,
+                    emissiveIntensity: 0.8,
                     roughness: 0.3
                 });
                 const cap = new THREE.Mesh(capGeom, capMat);
@@ -192,13 +197,6 @@ export function createDecorationVisuals(type, gridX, gridY) {
                 stem.add(cap);
                 
                 decorationGroup.add(stem);
-                
-                // Add point light for glow
-                if (i === 0) {
-                    const light = new THREE.PointLight(0x44ff44, 0.5, 2);
-                    light.position.set(offsetX, 0.2, offsetZ);
-                    decorationGroup.add(light);
-                }
             }
             break;
         }
@@ -209,6 +207,8 @@ export function createDecorationVisuals(type, gridX, gridY) {
             const geometry = new THREE.CircleGeometry(radius, 8);
             const material = new THREE.MeshStandardMaterial({
                 color: 0x225522,
+                emissive: 0x114411,
+                emissiveIntensity: 0.4,
                 roughness: 1.0,
                 side: THREE.DoubleSide
             });
@@ -218,6 +218,11 @@ export function createDecorationVisuals(type, gridX, gridY) {
             mesh.position.y = 0.01;
             
             decorationGroup.add(mesh);
+
+            // Add soft glow light
+            const light = new THREE.PointLight(0x22ff22, 1.0, 4);
+            light.position.set(0, 0.5, 0);
+            decorationGroup.add(light);
             break;
         }
 
