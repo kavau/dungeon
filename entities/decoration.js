@@ -946,9 +946,35 @@ export function spawnDecorations() {
                 // Don't spawn decorations too close to player start
                 if (distToPlayer > cellSize * 2) {
                     const nearWall = isNearWall(x, y);
+                    const level = game.dungeon.level || 1;
+                    
+                    // Filter allowed decorations based on level
+                    let allowedDecorations = [];
+                    switch(level) {
+                        case 1: // Ruins
+                            allowedDecorations = ['moss_patch', 'puddle', 'spider_web', 'bone_pile'];
+                            break;
+                        case 2: // Sewers
+                            allowedDecorations = ['puddle', 'moss_patch', 'spider_web'];
+                            break;
+                        case 3: // Temple
+                            allowedDecorations = ['wall_inscription', 'bone_pile', 'spider_web'];
+                            break;
+                        case 4: // Catacombs
+                            allowedDecorations = ['bone_pile', 'wall_inscription', 'spider_web', 'moss_patch'];
+                            break;
+                        case 5: // Caves
+                            allowedDecorations = ['stalactite', 'stalagmite', 'mushrooms', 'puddle'];
+                            break;
+                        default:
+                            allowedDecorations = Object.values(DECORATION_TYPES).map(d => d.name);
+                    }
                     
                     // Each decoration type has its own probability
                     for (const decorType of Object.values(DECORATION_TYPES)) {
+                        // Skip if not allowed on this level
+                        if (!allowedDecorations.includes(decorType.name)) continue;
+
                         const isInscription = decorType.name === 'wall_inscription';
                         
                         // Inscriptions ONLY spawn if there's a wall adjacent

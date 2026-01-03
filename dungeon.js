@@ -588,8 +588,11 @@ export function clearDungeon() {
     
     // Remove doors
     for (let door of game.doors) {
-        game.scene.remove(door.doorGroup);
-        game.scene.remove(door.doorPanel);
+        game.scene.remove(door.mesh);
+        // doorPanel is a child of mesh (frameGroup), so removing mesh removes it too
+        // But we can remove it explicitly if we want to be safe, though it's not strictly necessary if it's a child
+        // However, looking at createDoor, doorPivot (doorPanel) is added to frameGroup.
+        // So removing frameGroup (door.mesh) is enough.
     }
     game.doors = [];
     

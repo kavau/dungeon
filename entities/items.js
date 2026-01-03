@@ -349,14 +349,45 @@ export function spawnTreasures() {
             
             // Don't spawn too close to player
             if (distToPlayer > cellSize * 3) {
-                // Weighted random selection (more coins and trinkets, fewer chests)
+                // Weighted random selection based on level
                 const rand = Math.random();
                 let treasureType;
-                if (rand < 0.15) {
+                const level = game.dungeon.level || 1;
+
+                // Default probabilities (Level 1)
+                let pChest = 0.15;
+                let pCoin = 0.50; // Cumulative (0.15 + 0.35)
+                let pTrinket = 0.75; // Cumulative (0.50 + 0.25)
+                // Remainder is Gem
+
+                switch(level) {
+                    case 2: // Sewers - More junk, less gold
+                        pChest = 0.10;
+                        pCoin = 0.30;
+                        pTrinket = 0.80;
+                        break;
+                    case 3: // Temple - High wealth
+                        pChest = 0.25;
+                        pCoin = 0.60;
+                        pTrinket = 0.70;
+                        break;
+                    case 4: // Catacombs - Ancient trinkets and gems
+                        pChest = 0.15;
+                        pCoin = 0.35;
+                        pTrinket = 0.65;
+                        break;
+                    case 5: // Caves - Raw gems, less manufactured goods
+                        pChest = 0.05;
+                        pCoin = 0.20;
+                        pTrinket = 0.40;
+                        break;
+                }
+
+                if (rand < pChest) {
                     treasureType = TREASURE_TYPES.CHEST;
-                } else if (rand < 0.50) {
+                } else if (rand < pCoin) {
                     treasureType = TREASURE_TYPES.GOLD_COIN;
-                } else if (rand < 0.75) {
+                } else if (rand < pTrinket) {
                     treasureType = TREASURE_TYPES.TRINKET;
                 } else {
                     treasureType = TREASURE_TYPES.GEM;

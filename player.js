@@ -28,7 +28,7 @@ export function interactWithLadder() {
     const dx = Math.abs(playerGridX - game.ladderPosition.x);
     const dz = Math.abs(playerGridZ - game.ladderPosition.y);
     
-    if (dx <= 1 && dz <= 1) {
+    if (dx === 0 && dz === 0) {
         logMessage("Climbing ladder...", "item");
         nextLevel();
     } else {

@@ -35,8 +35,20 @@ export function setupControls() {
                 updateHealthDisplay();
                 logMessage("CHEAT MODE ENABLED", "combat");
             } else {
-                logMessage("CHEAT MODE ALREADY ACTIVE", "combat");
+                game.cheatMode = false;
+                game.player.maxHealth = 100;
+                if (game.player.health > 100) game.player.health = 100;
+                updateHealthDisplay();
+                
+                // Close map and debug window
+                const mapOverlay = document.getElementById('map-overlay');
+                if (mapOverlay) mapOverlay.style.display = 'none';
+                
+                game.controls.debugMode = false;
+                const debugWindow = document.getElementById('debug-window');
+                if (debugWindow) debugWindow.style.display = 'none';
             }
+            return;
         }
 
         // Handle intro screen
@@ -77,6 +89,23 @@ export function setupControls() {
         
         // Cheat Mode Controls
         if (game.cheatMode) {
+            if (e.code === 'KeyC') {
+                game.cheatMode = false;
+                game.player.maxHealth = 100;
+                if (game.player.health > 100) game.player.health = 100;
+                updateHealthDisplay();
+                
+                // Close map and debug window
+                const mapOverlay = document.getElementById('map-overlay');
+                if (mapOverlay) mapOverlay.style.display = 'none';
+                
+                game.controls.debugMode = false;
+                const debugWindow = document.getElementById('debug-window');
+                if (debugWindow) debugWindow.style.display = 'none';
+                
+                return;
+            }
+
             if (e.code === 'KeyL') {
                 // Renew Torch
                 game.player.torch.turnsActive = 0;

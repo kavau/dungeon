@@ -112,42 +112,19 @@ export function updateFloatingLabels() {
         const dx = ladderX - playerGridX;
         const dy = ladderY - playerGridY;
         
-        if (Math.abs(dx) <= 1 && Math.abs(dy) <= 1) {
-            let facingCorrect = false;
-            
-            if (dx === 0 && dy === 0) {
-                // On same tile
-                facingCorrect = true;
-            } else {
-                // Adjacent tile - must face towards ladder
-                // game.player.facing: 0=north (-Z), 1=east (+X), 2=south (+Z), 3=west (-X)
-                // dy corresponds to Z difference (ladderY - playerY)
-                
-                if (dx === 1 && dy === 0) { // Ladder is East
-                    if (game.player.facing === 1) facingCorrect = true;
-                } else if (dx === -1 && dy === 0) { // Ladder is West
-                    if (game.player.facing === 3) facingCorrect = true;
-                } else if (dx === 0 && dy === 1) { // Ladder is South
-                    if (game.player.facing === 2) facingCorrect = true;
-                } else if (dx === 0 && dy === -1) { // Ladder is North
-                    if (game.player.facing === 0) facingCorrect = true;
-                }
-            }
-
-            if (facingCorrect) {
-                const label = document.createElement('div');
-                label.className = 'floating-label';
-                label.textContent = "Press E to Climb";
-                label.style.position = 'absolute';
-                label.style.left = '50%';
-                label.style.top = '40%';
-                label.style.transform = 'translate(-50%, -50%)';
-                label.style.color = '#ffff00';
-                label.style.fontSize = '24px';
-                label.style.fontWeight = 'bold';
-                label.style.textShadow = '0 0 5px #000';
-                labelsContainer.appendChild(label);
-            }
+        if (dx === 0 && dy === 0) {
+            const label = document.createElement('div');
+            label.className = 'floating-label';
+            label.textContent = "Press E to Climb";
+            label.style.position = 'absolute';
+            label.style.left = '50%';
+            label.style.top = '40%';
+            label.style.transform = 'translate(-50%, -50%)';
+            label.style.color = '#ffff00';
+            label.style.fontSize = '24px';
+            label.style.fontWeight = 'bold';
+            label.style.textShadow = '0 0 5px #000';
+            labelsContainer.appendChild(label);
         }
     }
 
