@@ -1,7 +1,7 @@
 import { game, dungeonMap } from './state.js';
 import { logMessage } from './ui.js';
 import { spawnSingleMonster, spawnMonsters } from './entities/monster.js';
-import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder } from './dungeon.js';
+import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder, LEVEL_THEMES } from './dungeon.js';
 import { spawnTreasures } from './entities/items.js';
 import { spawnDecorations, spawnGlowWorms, createDecoration, DECORATION_TYPES } from './entities/decoration.js';
 
@@ -127,7 +127,23 @@ export function setupLevel() {
     // Spawn ladder to next level
     spawnLadder();
     
-    logMessage(`Welcome to Level ${game.dungeon.level}`);
+    if (game.started) {
+        const level = game.dungeon.level;
+        const theme = LEVEL_THEMES[level] || LEVEL_THEMES[1];
+        
+        const titleEl = document.getElementById('level-title');
+        const descEl = document.getElementById('level-desc');
+        const screenEl = document.getElementById('level-screen');
+        
+        if (titleEl && descEl && screenEl) {
+            titleEl.textContent = theme.title;
+            descEl.textContent = theme.description;
+            screenEl.style.display = 'flex';
+            game.showingLevelScreen = true;
+        }
+    } else {
+        logMessage(`Welcome to Level ${game.dungeon.level}`);
+    }
 }
 
 export function nextLevel() {

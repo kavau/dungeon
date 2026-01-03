@@ -2,6 +2,7 @@
 export const game = {
     started: false,
     won: false,
+    showingLevelScreen: false,
     cheatMode: false,
     isTransitioning: false,
     scene: null,

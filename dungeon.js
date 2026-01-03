@@ -9,11 +9,89 @@ import {
     createPanelTexture 
 } from './utils.js';
 
+export const LEVEL_THEMES = {
+    1: {
+        name: 'ruins',
+        title: 'The Ruins',
+        description: 'You are close to the surface. Roots break through the cracked stone walls. A faint breeze carries the scent of fresh air... and danger.',
+        wallBase: { r: 74, g: 63, b: 53 }, // Brownish grey
+        floorBase: '#2a2a2a',
+        floorTile: 42,
+        ceilingBase: '#4a4a4a',
+        mossy: true,
+        algorithm: 'rooms',
+        fogColor: 0x000000,
+        fogDist: 30
+    },
+    2: {
+        name: 'sewers',
+        title: 'The Sewers',
+        description: 'The stench is overpowering. Green slime coats the walls and floor. You can hear the skittering of unseen creatures in the dark.',
+        wallBase: { r: 40, g: 50, b: 40 }, // Dark green/grey
+        floorBase: '#1a2a1a',
+        floorTile: '#2a3a2a',
+        ceilingBase: '#1a2a1a',
+        mossy: true,
+        algorithm: 'corridors',
+        fogColor: 0x051005, // Very dark green
+        fogDist: 25
+    },
+    3: {
+        name: 'temple',
+        title: 'The Sunken Temple',
+        description: 'Golden ornaments glint in the shadows. This place was once holy, but now only echoes of dark rituals remain.',
+        wallBase: { r: 180, g: 160, b: 120 }, // Sandstone
+        floorBase: '#5a4a3a',
+        floorTile: '#8a7a6a',
+        ceilingBase: '#6a5a4a',
+        mossy: false,
+        algorithm: 'bsp',
+        fogColor: 0x2a2010, // Dark gold/brown
+        fogDist: 40
+    },
+    4: {
+        name: 'catacombs',
+        title: 'The Catacombs',
+        description: 'Rows of silent tombs line the walls. The air is dry and smells of dust and decay. You feel like you are being watched.',
+        wallBase: { r: 60, g: 60, b: 60 }, // Dark grey
+        floorBase: '#202020',
+        floorTile: '#303030',
+        ceilingBase: '#202020',
+        mossy: false,
+        algorithm: 'maze',
+        fogColor: 0x101010,
+        fogDist: 20 // Claustrophobic
+    },
+    5: {
+        name: 'caves',
+        title: 'The Deep Caves',
+        description: 'The air is thick with moisture and the smell of ancient earth. Bioluminescent fungi provide the only light in this natural labyrinth.',
+        wallBase: { r: 50, g: 45, b: 40 }, // Natural rock
+        floorBase: '#2a2520',
+        floorTile: '#3a3530',
+        ceilingBase: '#2a2520',
+        mossy: false,
+        algorithm: 'cellular',
+        fogColor: 0x000000,
+        fogDist: 25
+    }
+};
+
 export function generateDungeon() {
     const cellSize = game.dungeon.cellSize;
+    const level = game.dungeon.level || 1;
+    const theme = LEVEL_THEMES[level] || LEVEL_THEMES[1];
     
+    console.log(`Generating Level ${level} with theme: ${theme.name}`);
+
+    // Update Fog
+    if (game.scene.fog) {
+        game.scene.fog.color.setHex(theme.fogColor);
+        game.scene.fog.far = theme.fogDist;
+    }
+
     // Create floor
-    const floorTexture = createFloorTexture(game.dungeon.width, game.dungeon.height);
+    const floorTexture = createFloorTexture(game.dungeon.width, game.dungeon.height, theme);
     const floorGeometry = new THREE.PlaneGeometry(
         game.dungeon.width * cellSize,
         game.dungeon.height * cellSize
@@ -61,7 +139,7 @@ export function generateDungeon() {
     }
     ceilingGeometry.computeVertexNormals();
 
-    const ceilingTexture = createCeilingTexture(game.dungeon.width, game.dungeon.height);
+    const ceilingTexture = createCeilingTexture(game.dungeon.width, game.dungeon.height, theme);
     const ceilingMaterial = new THREE.MeshStandardMaterial({
         map: ceilingTexture,
         color: 0xaaaaaa,
@@ -79,7 +157,7 @@ export function generateDungeon() {
     game.dungeon.ceilingMesh = ceiling;
     
     // Create walls based on map
-    const wallTexture = createWallTexture();
+    const wallTexture = createWallTexture(theme);
     const wallGeometry = new THREE.BoxGeometry(cellSize * 1.1, 6, cellSize * 1.1);
     const wallMaterial = new THREE.MeshStandardMaterial({
         map: wallTexture,
@@ -561,6 +639,9 @@ export function clearDungeon() {
 }
 
 export function generateProceduralMap(width = game.dungeon.width, height = game.dungeon.height) {
+    const level = game.dungeon.level || 1;
+    const theme = LEVEL_THEMES[level] || LEVEL_THEMES[1];
+    
     // Initialize with walls
     const map = [];
     for (let y = 0; y < height; y++) {
@@ -571,97 +652,371 @@ export function generateProceduralMap(width = game.dungeon.width, height = game.
         map.push(row);
     }
     
-    // Room Generator - Fewer, smaller rooms
-    const rooms = [];
-    // For 40x40, we want maybe 10-15 rooms to leave space for corridors
-    const numRooms = 10 + Math.floor(Math.random() * 6);
-    
-    for (let i = 0; i < numRooms; i++) {
-        const w = 3 + Math.floor(Math.random() * 4); // Smaller rooms (3-6)
-        const h = 3 + Math.floor(Math.random() * 4);
-        const x = 1 + Math.floor(Math.random() * (width - w - 2));
-        const y = 1 + Math.floor(Math.random() * (height - h - 2));
-        
-        // Check overlap with padding
-        let overlap = false;
-        for (let room of rooms) {
-            if (x < room.x + room.w + 2 && x + w + 2 > room.x &&
-                y < room.y + room.h + 2 && y + h + 2 > room.y) {
-                overlap = true;
-                break;
-            }
-        }
-        
-        if (!overlap) {
-            rooms.push({ x, y, w, h });
-            
-            // Carve room
-            for (let ry = y; ry < y + h; ry++) {
-                for (let rx = x; rx < x + w; rx++) {
+    // Helper to carve a room
+    const carveRect = (x, y, w, h) => {
+        for (let ry = y; ry < y + h; ry++) {
+            for (let rx = x; rx < x + w; rx++) {
+                if (ry >= 1 && ry < height - 1 && rx >= 1 && rx < width - 1) {
                     map[ry][rx] = 0;
                 }
             }
         }
-    }
-    
-    // Connect rooms with twisted corridors
-    // Sort rooms to connect nearest neighbors or just sequential?
-    // Sequential is fine, it creates a long path.
-    
-    for (let i = 0; i < rooms.length - 1; i++) {
-        const roomA = rooms[i];
-        const roomB = rooms[i + 1];
+    };
+
+    if (theme.algorithm === 'rooms') {
+        // === LEVEL 1: RUINS (Standard Rooms + Twisted Corridors) ===
+        const rooms = [];
+        const numRooms = 10 + Math.floor(Math.random() * 6);
         
-        let cx = Math.floor(roomA.x + roomA.w / 2);
-        let cy = Math.floor(roomA.y + roomA.h / 2);
-        const tx = Math.floor(roomB.x + roomB.w / 2);
-        const ty = Math.floor(roomB.y + roomB.h / 2);
-        
-        // Drunkard's walk / Twisted path
-        while (cx !== tx || cy !== ty) {
-            // Determine direction
-            const dx = tx - cx;
-            const dy = ty - cy;
+        for (let i = 0; i < numRooms; i++) {
+            const w = 3 + Math.floor(Math.random() * 4);
+            const h = 3 + Math.floor(Math.random() * 4);
+            const x = 1 + Math.floor(Math.random() * (width - w - 2));
+            const y = 1 + Math.floor(Math.random() * (height - h - 2));
             
-            let moveX = 0;
-            let moveY = 0;
-            
-            // 70% chance to move towards target, 30% random deviation
-            if (Math.random() < 0.7) {
-                if (Math.abs(dx) > Math.abs(dy)) {
-                    moveX = Math.sign(dx);
-                } else {
-                    moveY = Math.sign(dy);
-                }
-            } else {
-                // Random move
-                if (Math.random() < 0.5) {
-                    moveX = Math.random() < 0.5 ? 1 : -1;
-                } else {
-                    moveY = Math.random() < 0.5 ? 1 : -1;
+            let overlap = false;
+            for (let room of rooms) {
+                if (x < room.x + room.w + 2 && x + w + 2 > room.x &&
+                    y < room.y + room.h + 2 && y + h + 2 > room.y) {
+                    overlap = true;
+                    break;
                 }
             }
             
-            // Apply move
-            cx += moveX;
-            cy += moveY;
+            if (!overlap) {
+                rooms.push({ x, y, w, h });
+                carveRect(x, y, w, h);
+            }
+        }
+        
+        // Connect rooms
+        for (let i = 0; i < rooms.length - 1; i++) {
+            const roomA = rooms[i];
+            const roomB = rooms[i + 1];
+            let cx = Math.floor(roomA.x + roomA.w / 2);
+            let cy = Math.floor(roomA.y + roomA.h / 2);
+            const tx = Math.floor(roomB.x + roomB.w / 2);
+            const ty = Math.floor(roomB.y + roomB.h / 2);
             
-            // Clamp to bounds
-            cx = Math.max(1, Math.min(width - 2, cx));
-            cy = Math.max(1, Math.min(height - 2, cy));
-            
-            // Carve
-            map[cy][cx] = 0;
-            
-            // Make corridors slightly wider occasionally to prevent 1-tile choke points being too annoying
-            if (Math.random() < 0.1) {
-                if (moveX !== 0) {
-                    if (cy > 1) map[cy-1][cx] = 0;
-                    if (cy < height-2) map[cy+1][cx] = 0;
+            while (cx !== tx || cy !== ty) {
+                const dx = tx - cx;
+                const dy = ty - cy;
+                let moveX = 0, moveY = 0;
+                
+                if (Math.random() < 0.7) {
+                    if (Math.abs(dx) > Math.abs(dy)) moveX = Math.sign(dx);
+                    else moveY = Math.sign(dy);
                 } else {
-                    if (cx > 1) map[cy][cx-1] = 0;
-                    if (cx < width-2) map[cy][cx+1] = 0;
+                    if (Math.random() < 0.5) moveX = Math.random() < 0.5 ? 1 : -1;
+                    else moveY = Math.random() < 0.5 ? 1 : -1;
                 }
+                
+                cx += moveX;
+                cy += moveY;
+                cx = Math.max(1, Math.min(width - 2, cx));
+                cy = Math.max(1, Math.min(height - 2, cy));
+                map[cy][cx] = 0;
+                
+                if (Math.random() < 0.1) { // Occasional widening
+                    if (moveX !== 0) {
+                        if (cy > 1) map[cy-1][cx] = 0;
+                        if (cy < height-2) map[cy+1][cx] = 0;
+                    } else {
+                        if (cx > 1) map[cy][cx-1] = 0;
+                        if (cx < width-2) map[cy][cx+1] = 0;
+                    }
+                }
+            }
+        }
+
+    } else if (theme.algorithm === 'corridors') {
+        // === LEVEL 2: SEWERS (Long winding corridors, few rooms) ===
+        let x = Math.floor(width / 2);
+        let y = Math.floor(height / 2);
+        let dir = Math.floor(Math.random() * 4); // 0:N, 1:E, 2:S, 3:W
+        const steps = 400; // Total length of sewers
+        
+        for (let i = 0; i < steps; i++) {
+            map[y][x] = 0;
+            
+            // Occasionally change direction
+            if (Math.random() < 0.1) {
+                dir = (dir + (Math.random() < 0.5 ? 1 : 3)) % 4;
+            }
+            
+            // Move
+            if (dir === 0 && y > 1) y--;
+            else if (dir === 1 && x < width - 2) x++;
+            else if (dir === 2 && y < height - 2) y++;
+            else if (dir === 3 && x > 1) x--;
+            else {
+                // Hit wall, change dir
+                dir = Math.floor(Math.random() * 4);
+            }
+            
+            // Occasionally create a small "cistern" room
+            if (Math.random() < 0.02) {
+                carveRect(x - 2, y - 2, 5, 5);
+            }
+        }
+
+    } else if (theme.algorithm === 'bsp') {
+        // === LEVEL 3: TEMPLE (Large rooms, wide corridors) ===
+        // Simple BSP-like subdivision
+        const splitContainer = (x, y, w, h, depth) => {
+            if (depth > 3 || w < 10 || h < 10) {
+                // Create room in center of container
+                const roomW = Math.max(4, w - 4);
+                const roomH = Math.max(4, h - 4);
+                const roomX = x + Math.floor((w - roomW) / 2);
+                const roomY = y + Math.floor((h - roomH) / 2);
+                carveRect(roomX, roomY, roomW, roomH);
+                return [{x: roomX + roomW/2, y: roomY + roomH/2}]; // Return center for connection
+            }
+            
+            // Split
+            const splitH = Math.random() < 0.5;
+            let centers = [];
+            
+            if (splitH) {
+                const splitY = Math.floor(h / 2 + (Math.random() * h * 0.2 - h * 0.1));
+                centers = centers.concat(splitContainer(x, y, w, splitY, depth + 1));
+                centers = centers.concat(splitContainer(x, y + splitY, w, h - splitY, depth + 1));
+                
+                // Connect the two halves
+                if (centers.length >= 2) {
+                    const c1 = centers[centers.length - 2];
+                    const c2 = centers[centers.length - 1];
+                    // Draw wide corridor
+                    const cx = Math.floor(c1.x);
+                    for (let cy = Math.floor(c1.y); cy <= Math.floor(c2.y); cy++) {
+                        map[cy][cx] = 0;
+                        map[cy][cx+1] = 0; // Wide
+                    }
+                }
+            } else {
+                const splitX = Math.floor(w / 2 + (Math.random() * w * 0.2 - w * 0.1));
+                centers = centers.concat(splitContainer(x, y, splitX, h, depth + 1));
+                centers = centers.concat(splitContainer(x + splitX, y, w - splitX, h, depth + 1));
+                
+                if (centers.length >= 2) {
+                    const c1 = centers[centers.length - 2];
+                    const c2 = centers[centers.length - 1];
+                    const cy = Math.floor(c1.y);
+                    for (let cx = Math.floor(c1.x); cx <= Math.floor(c2.x); cx++) {
+                        map[cy][cx] = 0;
+                        map[cy+1][cx] = 0; // Wide
+                    }
+                }
+            }
+            return centers;
+        };
+        
+        splitContainer(1, 1, width - 2, height - 2, 0);
+
+    } else if (theme.algorithm === 'maze') {
+        // === LEVEL 4: CATACOMBS (Dense Maze) ===
+        // Recursive Backtracker
+        const stack = [];
+        const startX = 1 + 2 * Math.floor(Math.random() * ((width-2)/2));
+        const startY = 1 + 2 * Math.floor(Math.random() * ((height-2)/2));
+        
+        map[startY][startX] = 0;
+        stack.push({x: startX, y: startY});
+        
+        while (stack.length > 0) {
+            const current = stack[stack.length - 1];
+            const neighbors = [];
+            
+            // Check neighbors (jump 2 cells)
+            const dirs = [[0, -2], [2, 0], [0, 2], [-2, 0]];
+            for (let d of dirs) {
+                const nx = current.x + d[0];
+                const ny = current.y + d[1];
+                if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && map[ny][nx] === 1) {
+                    neighbors.push({x: nx, y: ny, dx: d[0]/2, dy: d[1]/2});
+                }
+            }
+            
+            if (neighbors.length > 0) {
+                const next = neighbors[Math.floor(Math.random() * neighbors.length)];
+                // Carve path
+                map[next.y][next.x] = 0;
+                map[current.y + next.dy][current.x + next.dx] = 0;
+                stack.push({x: next.x, y: next.y});
+            } else {
+                stack.pop();
+            }
+        }
+        
+        // Add some loops to make it less frustrating
+        // Increased connections to make navigation easier
+        for (let i = 0; i < 250; i++) {
+            const rx = 1 + Math.floor(Math.random() * (width - 2));
+            const ry = 1 + Math.floor(Math.random() * (height - 2));
+            if (map[ry][rx] === 1) {
+                // Check if it connects two open spaces
+                let openNeighbors = 0;
+                if (map[ry-1][rx] === 0) openNeighbors++;
+                if (map[ry+1][rx] === 0) openNeighbors++;
+                if (map[ry][rx-1] === 0) openNeighbors++;
+                if (map[ry][rx+1] === 0) openNeighbors++;
+                
+                if (openNeighbors >= 2) map[ry][rx] = 0;
+            }
+        }
+
+    } else if (theme.algorithm === 'cellular') {
+        // === LEVEL 5: CAVES (Cellular Automata) ===
+        // Random fill
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
+                map[y][x] = Math.random() < 0.45 ? 1 : 0;
+            }
+        }
+        
+        // Smooth
+        for (let i = 0; i < 5; i++) {
+            const newMap = JSON.parse(JSON.stringify(map));
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    let walls = 0;
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dx = -1; dx <= 1; dx++) {
+                            if (map[y+dy][x+dx] === 1) walls++;
+                        }
+                    }
+                    if (walls > 4) newMap[y][x] = 1;
+                    else if (walls < 4) newMap[y][x] = 0;
+                }
+            }
+            // Copy back
+            for(let y=0; y<height; y++) {
+                for(let x=0; x<width; x++) {
+                    map[y][x] = newMap[y][x];
+                }
+            }
+        }
+    }
+
+    // Special modification for Level 5 (The Awakening)
+    // Create a large central cavern for the Wyrm
+    // Applied BEFORE connectivity check to ensure it gets connected
+    if (game.dungeon.level === 5) {
+        const centerX = Math.floor(width / 2);
+        const centerY = Math.floor(height / 2);
+        const cavernRadius = 5.0; // Larger cavern
+
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
+                const dx = x - centerX;
+                const dy = y - centerY;
+                // Create a rough circular cavern
+                if (dx*dx + dy*dy < cavernRadius*cavernRadius + (Math.random() * 2)) {
+                    map[y][x] = 0;
+                }
+            }
+        }
+    }
+
+    // === CONNECTIVITY CHECK ===
+    // Ensure all open areas are connected
+    const getRegions = () => {
+        const regions = [];
+        const visited = Array(height).fill().map(() => Array(width).fill(false));
+        
+        for (let y = 1; y < height - 1; y++) {
+            for (let x = 1; x < width - 1; x++) {
+                if (map[y][x] === 0 && !visited[y][x]) {
+                    const region = [];
+                    const stack = [{x, y}];
+                    visited[y][x] = true;
+                    
+                    while (stack.length > 0) {
+                        const p = stack.pop();
+                        region.push(p);
+                        
+                        const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+                        for (let d of dirs) {
+                            const nx = p.x + d[0];
+                            const ny = p.y + d[1];
+                            if (nx >= 0 && nx < width && ny >= 0 && ny < height && 
+                                map[ny][nx] === 0 && !visited[ny][nx]) {
+                                visited[ny][nx] = true;
+                                stack.push({x: nx, y: ny});
+                            }
+                        }
+                    }
+                    regions.push(region);
+                }
+            }
+        }
+        return regions;
+    };
+
+    let regions = getRegions();
+    
+    if (regions.length > 1) {
+        console.log(`Found ${regions.length} disconnected regions. Connecting...`);
+        
+        // Sort by size, largest first
+        regions.sort((a, b) => b.length - a.length);
+        
+        // We will connect everything to the main (largest) region
+        const mainRegion = regions[0];
+        const connectedPoints = [...mainRegion];
+        
+        // Process other regions
+        for (let i = 1; i < regions.length; i++) {
+            const region = regions[i];
+            
+            // Find closest connection between this region and the connected set
+            let minDst = Infinity;
+            let pA = null; // in connected set
+            let pB = null; // in current region
+            
+            // Optimization: Check a subset if too slow, but 40x40 is fast enough
+            for (let p1 of connectedPoints) {
+                for (let p2 of region) {
+                    const dst = (p1.x - p2.x)**2 + (p1.y - p2.y)**2;
+                    if (dst < minDst) {
+                        minDst = dst;
+                        pA = p1;
+                        pB = p2;
+                    }
+                }
+            }
+            
+            if (pA && pB) {
+                // Dig tunnel
+                let cx = pB.x;
+                let cy = pB.y;
+                const tx = pA.x;
+                const ty = pA.y;
+                
+                while (cx !== tx || cy !== ty) {
+                    const dx = tx - cx;
+                    const dy = ty - cy;
+                    
+                    // Move in the direction of larger distance difference first (more natural)
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        cx += Math.sign(dx);
+                    } else {
+                        cy += Math.sign(dy);
+                    }
+                    
+                    map[cy][cx] = 0;
+                    // Add some width to the tunnel
+                    if (Math.random() < 0.5) {
+                        if (cx > 1) map[cy][cx-1] = 0;
+                        if (cx < width-2) map[cy][cx+1] = 0;
+                        if (cy > 1) map[cy-1][cx] = 0;
+                        if (cy < height-2) map[cy+1][cx] = 0;
+                    }
+                }
+                
+                // Add this region's points to connected set
+                connectedPoints.push(...region);
             }
         }
     }
@@ -679,25 +1034,6 @@ export function generateProceduralMap(width = game.dungeon.width, height = game.
     for(let y=0; y<height; y++) {
         for(let x=0; x<width; x++) {
             dungeonMap[y][x] = map[y][x];
-        }
-    }
-
-    // Special modification for Level 5 (The Awakening)
-    // Create a large central cavern for the Wyrm
-    if (game.dungeon.level === 5) {
-        const centerX = Math.floor(width / 2);
-        const centerY = Math.floor(height / 2);
-        const cavernRadius = 3.5; // 7x7 roughly
-
-        for (let y = 1; y < height - 1; y++) {
-            for (let x = 1; x < width - 1; x++) {
-                const dx = x - centerX;
-                const dy = y - centerY;
-                // Create a rough circular cavern
-                if (dx*dx + dy*dy < cavernRadius*cavernRadius + (Math.random() * 2)) {
-                    dungeonMap[y][x] = 0;
-                }
-            }
         }
     }
 }

@@ -11,14 +11,18 @@ export function getDifficultyText(difficulty) {
     return 'Extreme';
 }
 
-export function createFloorTexture(width, height) {
+export function createFloorTexture(width, height, theme = {}) {
     const floorCanvas = document.createElement('canvas');
     floorCanvas.width = 512;
     floorCanvas.height = 512;
     const floorCtx = floorCanvas.getContext('2d');
     
-    // Base stone color
-    floorCtx.fillStyle = '#2a2a2a';
+    // Theme colors
+    const baseColorHex = theme.floorBase || '#2a2a2a';
+    const tileColorBase = theme.floorTile || 42;
+    
+    // Base fill
+    floorCtx.fillStyle = baseColorHex;
     floorCtx.fillRect(0, 0, 512, 512);
     
     // Add stone tiles with variation
@@ -27,8 +31,19 @@ export function createFloorTexture(width, height) {
         for (let x = 0; x < 512; x += tileSize) {
             // Slight color variation per tile
             const variation = Math.floor(Math.random() * 20 - 10);
-            const baseColor = 42 + variation;
-            floorCtx.fillStyle = `rgb(${baseColor}, ${baseColor}, ${baseColor})`;
+            
+            // Parse base color if it's a number (grey scale) or handle hex
+            let fillStyle;
+            if (typeof tileColorBase === 'number') {
+                const c = Math.max(0, Math.min(255, tileColorBase + variation));
+                fillStyle = `rgb(${c}, ${c}, ${c})`;
+            } else {
+                // Simple hex variation logic could go here, but for now assume grey if number
+                // If string, just use it
+                fillStyle = tileColorBase; 
+            }
+            
+            floorCtx.fillStyle = fillStyle;
             floorCtx.fillRect(x + 1, y + 1, tileSize - 2, tileSize - 2);
             
             // Add cracks and texture
@@ -37,14 +52,29 @@ export function createFloorTexture(width, height) {
                 const py = y + Math.random() * tileSize;
                 const size = 1 + Math.random() * 2;
                 const darkness = Math.floor(Math.random() * 30);
-                floorCtx.fillStyle = `rgb(${darkness}, ${darkness}, ${darkness})`;
+                floorCtx.fillStyle = `rgba(0,0,0,0.2)`;
                 floorCtx.fillRect(px, py, size, size);
             }
             
             // Grout lines (darker)
-            floorCtx.strokeStyle = '#1a1a1a';
+            floorCtx.strokeStyle = 'rgba(0,0,0,0.5)';
             floorCtx.lineWidth = 2;
             floorCtx.strokeRect(x, y, tileSize, tileSize);
+        }
+    }
+    
+    // Theme specific overlays
+    if (theme.name === 'sewers') {
+        // Green slime overlay
+        for (let i = 0; i < 50; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const radius = 10 + Math.random() * 30;
+            const gradient = floorCtx.createRadialGradient(x, y, 0, x, y, radius);
+            gradient.addColorStop(0, 'rgba(50, 100, 50, 0.4)');
+            gradient.addColorStop(1, 'rgba(50, 100, 50, 0)');
+            floorCtx.fillStyle = gradient;
+            floorCtx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
         }
     }
     
@@ -55,14 +85,14 @@ export function createFloorTexture(width, height) {
     return floorTexture;
 }
 
-export function createCeilingTexture(width, height) {
+export function createCeilingTexture(width, height, theme = {}) {
     const ceilingCanvas = document.createElement('canvas');
     ceilingCanvas.width = 512;
     ceilingCanvas.height = 512;
     const ceilingCtx = ceilingCanvas.getContext('2d');
     
-    // Dark rock base - lighter than before
-    ceilingCtx.fillStyle = '#4a4a4a';
+    // Base color
+    ceilingCtx.fillStyle = theme.ceilingBase || '#4a4a4a';
     ceilingCtx.fillRect(0, 0, 512, 512);
     
     // Add noise texture
@@ -70,8 +100,8 @@ export function createCeilingTexture(width, height) {
         const x = Math.random() * 512;
         const y = Math.random() * 512;
         const size = 2 + Math.random() * 6;
-        const shade = Math.floor(Math.random() * 60 + 30); // Lighter noise
-        ceilingCtx.fillStyle = `rgba(${shade}, ${shade}, ${shade}, 0.2)`;
+        const shade = Math.floor(Math.random() * 60 + 30); 
+        ceilingCtx.fillStyle = `rgba(${shade}, ${shade}, ${shade}, 0.1)`;
         ceilingCtx.beginPath();
         ceilingCtx.arc(x, y, size, 0, Math.PI * 2);
         ceilingCtx.fill();
@@ -84,14 +114,14 @@ export function createCeilingTexture(width, height) {
     return ceilingTexture;
 }
 
-export function createWallTexture() {
+export function createWallTexture(theme = {}) {
     const wallCanvas = document.createElement('canvas');
     wallCanvas.width = 512;
     wallCanvas.height = 512;
     const wallCtx = wallCanvas.getContext('2d');
     
     // Base stone wall color
-    const baseWallColor = { r: 74, g: 63, b: 53 };
+    const baseWallColor = theme.wallBase || { r: 74, g: 63, b: 53 };
     wallCtx.fillStyle = `rgb(${baseWallColor.r}, ${baseWallColor.g}, ${baseWallColor.b})`;
     wallCtx.fillRect(0, 0, 512, 512);
     
@@ -121,14 +151,14 @@ export function createWallTexture() {
                 const py = currentY + Math.random() * rowHeight;
                 const size = 1 + Math.random() * 3;
                 const darkness = Math.floor(Math.random() * 40);
-                wallCtx.fillStyle = `rgb(${darkness}, ${darkness}, ${darkness})`;
+                wallCtx.fillStyle = `rgba(0,0,0,0.3)`;
                 wallCtx.beginPath();
                 wallCtx.arc(px, py, size, 0, Math.PI * 2);
                 wallCtx.fill();
             }
             
             // Mortar lines (darker gaps between stones)
-            wallCtx.strokeStyle = '#252015';
+            wallCtx.strokeStyle = 'rgba(0,0,0,0.5)';
             wallCtx.lineWidth = 3;
             wallCtx.strokeRect(currentX, currentY, block.w, rowHeight);
             
@@ -138,15 +168,24 @@ export function createWallTexture() {
     }
     
     // Add moss and weathering
-    for (let i = 0; i < 100; i++) {
-        const x = Math.random() * 512;
-        const y = Math.random() * 512;
-        const size = 5 + Math.random() * 15;
-        const gradient = wallCtx.createRadialGradient(x, y, 0, x, y, size);
-        gradient.addColorStop(0, 'rgba(40, 60, 30, 0.3)');
-        gradient.addColorStop(1, 'rgba(40, 60, 30, 0)');
-        wallCtx.fillStyle = gradient;
-        wallCtx.fillRect(x - size, y - size, size * 2, size * 2);
+    if (theme.mossy) {
+        for (let i = 0; i < 100; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const size = 5 + Math.random() * 15;
+            const gradient = wallCtx.createRadialGradient(x, y, 0, x, y, size);
+            gradient.addColorStop(0, 'rgba(40, 60, 30, 0.3)');
+            gradient.addColorStop(1, 'rgba(40, 60, 30, 0)');
+            wallCtx.fillStyle = gradient;
+            wallCtx.fillRect(x - size, y - size, size * 2, size * 2);
+        }
+    }
+
+    if (theme.name === 'temple') {
+        // Add gold trim
+        wallCtx.strokeStyle = '#d4af37';
+        wallCtx.lineWidth = 5;
+        wallCtx.strokeRect(10, 10, 492, 492);
     }
     
     const wallTexture = new THREE.CanvasTexture(wallCanvas);

@@ -56,6 +56,23 @@ export function setupControls() {
             return;
         }
 
+        // Handle level screen
+        if (game.showingLevelScreen) {
+            // Ignore modifier keys alone
+            if (e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift' || e.key === 'Meta') {
+                return;
+            }
+            
+            game.showingLevelScreen = false;
+            const levelScreen = document.getElementById('level-screen');
+            if (levelScreen) {
+                levelScreen.style.display = 'none';
+            }
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
+        }
+
         if (!game.player.canMove) return;
         
         // Cheat Mode Controls
