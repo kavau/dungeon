@@ -108,6 +108,7 @@ export function spawnDecorations() {
                     const level = game.dungeon.level || 1;
                     const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
                     const allowedDecorations = config.decorations;
+                    const decorationProbabilities = config.decorationProbabilities || {};
                     
                     // Each decoration type has its own probability
                     for (const decorType of Object.values(DECORATION_TYPES)) {
@@ -129,7 +130,11 @@ export function spawnDecorations() {
                         const prefersWall = wallPreferringTypes.includes(decorType.name);
                         
                         // Adjust probability based on wall proximity
-                        let adjustedProbability = decorType.probability;
+                        let baseProbability = decorationProbabilities[decorType.name] !== undefined 
+                            ? decorationProbabilities[decorType.name] 
+                            : decorType.probability;
+
+                        let adjustedProbability = baseProbability;
                         if (prefersWall) {
                             if (nearWall) {
                                 // Much higher chance near walls (3x)
@@ -157,11 +162,28 @@ export function spawnDecorations() {
     console.log(`Spawned ${game.decorations.length} decorations`);
 }
 export function updateDecorations() {
+    const playerPos = game.player.position;
+    const lightCullDistance = 20; // Increased to match larger light radius
+
     for (let decoration of game.decorations) {
+        // Light Culling
+        if (decoration.mesh.userData.light) {
+            const dx = decoration.mesh.position.x - playerPos.x;
+            const dz = decoration.mesh.position.z - playerPos.z;
+            const distSq = dx * dx + dz * dz;
+            
+            // Enable light only if close enough
+            if (distSq < lightCullDistance * lightCullDistance) {
+                decoration.mesh.userData.light.visible = true;
+            } else {
+                decoration.mesh.userData.light.visible = false;
+            }
+        }
+
         if (decoration.type.name === 'spider_web') {
             // Calculate distance from player
-            const dx = decoration.mesh.position.x - game.player.position.x;
-            const dz = decoration.mesh.position.z - game.player.position.z;
+            const dx = decoration.mesh.position.x - playerPos.x;
+            const dz = decoration.mesh.position.z - playerPos.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             
             // Scale opacity based on distance (fade out between 5 and 15 units)

@@ -92,26 +92,45 @@ export function createDungeonVisuals(dungeonMap, theme, cellSize) {
         metalness: 0.0
     });
     
+    // Count walls
+    let wallCount = 0;
+    for (let y = 0; y < dungeonMap.length; y++) {
+        for (let x = 0; x < dungeonMap[y].length; x++) {
+            if (dungeonMap[y][x] === 1) wallCount++;
+        }
+    }
+
+    // Create InstancedMesh
+    const wallMesh = new THREE.InstancedMesh(wallGeometry, wallMaterial, wallCount);
+    wallMesh.castShadow = true;
+    wallMesh.receiveShadow = true;
+    
+    const dummy = new THREE.Object3D();
+    let index = 0;
+    
     for (let y = 0; y < dungeonMap.length; y++) {
         for (let x = 0; x < dungeonMap[y].length; x++) {
             if (dungeonMap[y][x] === 1) {
-                const wall = new THREE.Mesh(wallGeometry, wallMaterial);
-                wall.position.x = x * cellSize + cellSize / 2;
-                wall.position.y = 3; // Raised center to account for height 6 (0 to 6)
-                wall.position.z = y * cellSize + cellSize / 2;
-                wall.castShadow = true;
-                wall.receiveShadow = true;
+                dummy.position.set(
+                    x * cellSize + cellSize / 2,
+                    3, // Raised center
+                    y * cellSize + cellSize / 2
+                );
+                dummy.updateMatrix();
+                wallMesh.setMatrixAt(index++, dummy.matrix);
                 
-                visuals.walls.push(wall);
+                // Keep wallData for collision (though we should optimize collision too)
                 visuals.wallData.push({
-                    position: wall.position,
+                    position: dummy.position.clone(),
                     width: cellSize,
                     height: cellSize
                 });
             }
         }
     }
-
+    
+    visuals.walls = [wallMesh]; // Return as array containing single mesh for compatibility
+    
     return visuals;
 }
 

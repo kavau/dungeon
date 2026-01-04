@@ -147,25 +147,35 @@ export function teleportToLevel(level) {
 
 export function checkCollision(position) {
     const playerRadius = 0.3;
+    const cellSize = game.dungeon.cellSize;
     
-    // Check wall collisions
-    for (let wall of game.dungeon.walls) {
-        const dx = position.x - wall.position.x;
-        const dz = position.z - wall.position.z;
-        
-        // Use wall width/height (assuming square walls for now based on cellSize)
-        // wall.width is cellSize
-        const halfSize = wall.width / 2;
-        const minDistance = halfSize + playerRadius;
-        
-        // AABB collision check (Axis-Aligned Bounding Box)
-        if (Math.abs(dx) < minDistance && Math.abs(dz) < minDistance) {
-            return 'wall';
+    // Grid-based wall collision (O(1))
+    // Check the cell the player is in, and neighbors if close to edge
+    const minX = Math.floor((position.x - playerRadius) / cellSize);
+    const maxX = Math.floor((position.x + playerRadius) / cellSize);
+    const minZ = Math.floor((position.z - playerRadius) / cellSize);
+    const maxZ = Math.floor((position.z + playerRadius) / cellSize);
+    
+    for (let z = minZ; z <= maxZ; z++) {
+        for (let x = minX; x <= maxX; x++) {
+            // Check bounds
+            if (z >= 0 && z < game.dungeon.height && x >= 0 && x < game.dungeon.width) {
+                if (dungeonMap[z][x] === 1) {
+                    // Precise AABB check against this wall cell
+                    const wallX = x * cellSize + cellSize / 2;
+                    const wallZ = z * cellSize + cellSize / 2;
+                    const halfSize = cellSize / 2;
+                    
+                    if (Math.abs(position.x - wallX) < (halfSize + playerRadius) &&
+                        Math.abs(position.z - wallZ) < (halfSize + playerRadius)) {
+                        return 'wall';
+                    }
+                }
+            }
         }
     }
     
     // Check door collisions (only if door is closed)
-    const cellSize = game.dungeon.cellSize;
     const playerGridX = Math.floor(position.x / cellSize);
     const playerGridZ = Math.floor(position.z / cellSize);
     

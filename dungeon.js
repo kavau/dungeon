@@ -448,24 +448,9 @@ export function generateProceduralMap(width = game.dungeon.width, height = game.
         }
     }
 
-    // Special modification for Level 5 (The Awakening)
-    // Create a large central cavern for the Wyrm
-    // Applied BEFORE connectivity check to ensure it gets connected
-    if (game.dungeon.level === 5) {
-        const centerX = Math.floor(width / 2);
-        const centerY = Math.floor(height / 2);
-        const cavernRadius = 5.0; // Larger cavern
-
-        for (let y = 1; y < height - 1; y++) {
-            for (let x = 1; x < width - 1; x++) {
-                const dx = x - centerX;
-                const dy = y - centerY;
-                // Create a rough circular cavern
-                if (dx*dx + dy*dy < cavernRadius*cavernRadius + (Math.random() * 2)) {
-                    map[y][x] = 0;
-                }
-            }
-        }
+    // Apply level-specific map modifications (e.g. central cavern)
+    if (config.mapGeneration) {
+        config.mapGeneration(map, width, height);
     }
 
     // === CONNECTIVITY CHECK ===

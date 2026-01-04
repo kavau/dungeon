@@ -127,8 +127,32 @@ export const LEVEL_CONFIG = {
             trinket: 0.40
         },
         decorations: [
-            'stalactite', 'stalagmite', 'mushrooms', 'puddle'
+            'stalactite', 'stalagmite', 'mushrooms', 'puddle', 'moss_patch'
         ],
+        decorationProbabilities: {
+            mushrooms: 0.15, // Much more common
+            moss_patch: 0.15, // Abundant glow moss
+            stalactite: 0.10,
+            stalagmite: 0.10,
+            puddle: 0.08
+        },
+        mapGeneration: (map, width, height) => {
+            // Create a large central cavern for the Wyrm
+            const centerX = Math.floor(width / 2);
+            const centerY = Math.floor(height / 2);
+            const cavernRadius = 6.0; // Slightly larger cavern
+
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const dx = x - centerX;
+                    const dy = y - centerY;
+                    // Create a rough circular cavern
+                    if (dx*dx + dy*dy < cavernRadius*cavernRadius + (Math.random() * 5)) {
+                        map[y][x] = 0;
+                    }
+                }
+            }
+        },
         setup: (game, dungeonMap, helpers) => {
             const { createDecoration, DECORATION_TYPES } = helpers;
             const cellSize = game.dungeon.cellSize;

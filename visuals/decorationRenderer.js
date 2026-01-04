@@ -166,9 +166,13 @@ export function createDecorationVisuals(type, gridX, gridY) {
             const numMushrooms = 3 + Math.floor(Math.random() * 7);
             
             // Add a central light for the cluster
-            const clusterLight = new THREE.PointLight(0x44ff44, 1.5, 5);
+            // Increased distance from 5 to 10 to illuminate further
+            const clusterLight = new THREE.PointLight(0x44ff44, 1.5, 10);
             clusterLight.position.set(0, 0.5, 0);
             decorationGroup.add(clusterLight);
+            
+            // Store reference for culling
+            decorationGroup.userData.light = clusterLight;
             
             for (let i = 0; i < numMushrooms; i++) {
                 const height = 0.1 + Math.random() * 0.2;
@@ -223,6 +227,9 @@ export function createDecorationVisuals(type, gridX, gridY) {
             const light = new THREE.PointLight(0x22ff22, 1.0, 4);
             light.position.set(0, 0.5, 0);
             decorationGroup.add(light);
+            
+            // Store reference for culling
+            decorationGroup.userData.light = light;
             break;
         }
 
