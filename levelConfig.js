@@ -102,7 +102,91 @@ export const LEVEL_CONFIG = {
         },
         decorations: [
             'bone_pile', 'wall_inscription', 'spider_web', 'moss_patch'
-        ]
+        ],
+        setup: (game, dungeonMap, { createMonster, MONSTER_TYPES }) => {
+            let px, py;
+            let attempts = 0;
+            let found = false;
+            let mx, my;
+            
+            // Simple Bresenham's Line Algorithm for LOS check
+            const hasLineOfSight = (x0, y0, x1, y1) => {
+                let dx = Math.abs(x1 - x0);
+                let dy = Math.abs(y1 - y0);
+                let sx = (x0 < x1) ? 1 : -1;
+                let sy = (y0 < y1) ? 1 : -1;
+                let err = dx - dy;
+                
+                let x = x0;
+                let y = y0;
+                
+                while (true) {
+                    if (dungeonMap[y][x] !== 0) return false; // Blocked
+                    if (x === x1 && y === y1) break;
+                    let e2 = 2 * err;
+                    if (e2 > -dy) { err -= dy; x += sx; }
+                    if (e2 < dx) { err += dx; y += sy; }
+                }
+                return true;
+            };
+    
+            // Find a spot for player and a monster nearby (3-6 tiles away)
+            while (!found && attempts < 5000) {
+                px = Math.floor(Math.random() * game.dungeon.width);
+                py = Math.floor(Math.random() * game.dungeon.height);
+                
+                if (dungeonMap[py][px] === 0) {
+                    // Try to find a valid monster spot nearby
+                    // Check random spots in a 3-6 radius
+                    for (let i = 0; i < 20; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const dist = 3 + Math.random() * 3; // 3 to 6
+                        const tx = Math.floor(px + Math.cos(angle) * dist);
+                        const ty = Math.floor(py + Math.sin(angle) * dist);
+                        
+                        if (tx >= 1 && tx < game.dungeon.width - 1 && 
+                            ty >= 1 && ty < game.dungeon.height - 1 && 
+                            dungeonMap[ty][tx] === 0) {
+                            
+                            if (hasLineOfSight(px, py, tx, ty)) {
+                                mx = tx;
+                                my = ty;
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                attempts++;
+            }
+            
+            if (found) {
+                // Spawn the guide monster
+                // Use SKELETON as it naturally carries a torch
+                createMonster(mx, my, MONSTER_TYPES.SKELETON);
+                
+                // Ensure it has a torch (just in case)
+                const monster = game.monsters[game.monsters.length - 1];
+                if (monster) {
+                    monster.hasTorch = true;
+                    // Make it not aggressive initially so the player sees it? 
+                    // User didn't ask for that, just "carrying a torch".
+                    // But "spawned very near" might mean immediate combat.
+                    // "Guide monster" implies it might lead somewhere or just be visible.
+                    // I'll leave AI as is.
+                }
+                
+                console.log("Spawned torch-bearing monster at", mx, my);
+            } else {
+                // Fallback
+                 do {
+                    px = Math.floor(Math.random() * game.dungeon.width);
+                    py = Math.floor(Math.random() * game.dungeon.height);
+                } while (dungeonMap[py][px] !== 0);
+            }
+    
+            return { x: px, y: py, facing: 1 };
+        }
     },
     5: {
         name: 'caves',
@@ -114,9 +198,12 @@ export const LEVEL_CONFIG = {
             floorTile: '#3a3530',
             ceilingBase: '#2a2520',
             mossy: false,
+            noTiles: true, // Natural cave look
             algorithm: 'cellular',
-            fogColor: 0x000000,
-            fogDist: 25
+            fogColor: 0x000000, // Pitch black background
+            fogDist: 40, // Increased visibility
+            ambientLight: 0x113333, // Dim bioluminescent glow
+            ambientIntensity: 0.3
         },
         monsters: [
             'bat', 'salamander', 'troll', 'mushroom', 'scarab', 'cube'
@@ -137,20 +224,49 @@ export const LEVEL_CONFIG = {
             puddle: 0.08
         },
         mapGeneration: (map, width, height) => {
-            // Create a large central cavern for the Wyrm
-            const centerX = Math.floor(width / 2);
-            const centerY = Math.floor(height / 2);
-            const cavernRadius = 6.0; // Slightly larger cavern
+            // Create a large underground lake in the North-East corner
+            const lakeCenterX = width - 12;
+            const lakeCenterY = 12;
+            const lakeRadius = 7.0;
+            const islandRadius = 2.0;
 
+            // 1. Create the Lake (Water = 2)
             for (let y = 1; y < height - 1; y++) {
                 for (let x = 1; x < width - 1; x++) {
-                    const dx = x - centerX;
-                    const dy = y - centerY;
-                    // Create a rough circular cavern
-                    if (dx*dx + dy*dy < cavernRadius*cavernRadius + (Math.random() * 5)) {
-                        map[y][x] = 0;
+                    const dx = x - lakeCenterX;
+                    const dy = y - lakeCenterY;
+                    const distSq = dx*dx + dy*dy;
+                    
+                    // Create irregular lake shape
+                    if (distSq < lakeRadius*lakeRadius + (Math.random() * 10)) {
+                        map[y][x] = 2; // Water
                     }
                 }
+            }
+
+            // 2. Create the Island (Land = 0)
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const dx = x - lakeCenterX;
+                    const dy = y - lakeCenterY;
+                    const distSq = dx*dx + dy*dy;
+                    
+                    if (distSq < islandRadius*islandRadius) {
+                        map[y][x] = 0; // Land
+                    }
+                }
+            }
+
+            // 3. Create Natural Bridges (Land = 0)
+            // Bridge to West
+            for (let x = lakeCenterX - Math.floor(lakeRadius) - 2; x < lakeCenterX; x++) {
+                if (x > 0 && x < width) map[lakeCenterY][x] = 0;
+                if (x > 0 && x < width && Math.random() > 0.5) map[lakeCenterY+1][x] = 0; // Widen randomly
+            }
+            // Bridge to South
+            for (let y = lakeCenterY; y < lakeCenterY + Math.floor(lakeRadius) + 2; y++) {
+                if (y > 0 && y < height) map[y][lakeCenterX] = 0;
+                if (y > 0 && y < height && Math.random() > 0.5) map[y][lakeCenterX+1] = 0; // Widen randomly
             }
         },
         setup: (game, dungeonMap, helpers) => {
@@ -158,9 +274,9 @@ export const LEVEL_CONFIG = {
             const cellSize = game.dungeon.cellSize;
             
             // Special setup for Level 5 (The Awakening)
-            // Place Wyrm in the center of the cavern
-            const wx = Math.floor(game.dungeon.width / 2);
-            const wy = Math.floor(game.dungeon.height / 2);
+            // Place Wyrm in the center of the Island (North-East)
+            const wx = game.dungeon.width - 12;
+            const wy = 12;
 
             // Spawn Wyrm
             createDecoration(wx, wy, DECORATION_TYPES.WYRM_CARCASS);
@@ -183,21 +299,26 @@ export const LEVEL_CONFIG = {
                 }
             }
             
-            // Place player south of the Wyrm
+            // Place player on the island (South of the Wyrm)
             let px = wx;
-            let py = wy + 5;
+            let py = wy + 2;
             
             // Ensure player spot is valid
             if (dungeonMap[py][px] !== 0) {
+                 // Search for valid spot nearby
                  let found = false;
-                 for(let r=1; r<5; r++) {
+                 for(let r=1; r<10; r++) {
                      for(let dx=-r; dx<=r; dx++) {
                          for(let dy=-r; dy<=r; dy++) {
-                             if(dungeonMap[wy+dy][wx+dx] === 0) {
-                                 px = wx+dx;
-                                 py = wy+dy;
-                                 found = true;
-                                 break;
+                             const tx = px+dx;
+                             const ty = py+dy;
+                             if (tx>=0 && tx<game.dungeon.width && ty>=0 && ty<game.dungeon.height) {
+                                 if(dungeonMap[ty][tx] === 0) {
+                                     px = tx;
+                                     py = ty;
+                                     found = true;
+                                     break;
+                                 }
                              }
                          }
                          if(found) break;
@@ -206,7 +327,7 @@ export const LEVEL_CONFIG = {
                  }
             }
             
-            return { x: px, y: py, facing: 0 }; // 0 is North
+            return { x: px, y: py, facing: 0 }; // 0 is North (Facing the lake)
         }
     }
 };

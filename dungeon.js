@@ -1,5 +1,6 @@
 import { game, dungeonMap } from './state.js';
 import { createDecoration, DECORATION_TYPES } from './entities/decoration.js';
+import { clearWaterCreatures } from './entities/waterCreatures.js';
 import { LEVEL_CONFIG } from './levelConfig.js';
 import { 
     createDungeonVisuals, 
@@ -19,6 +20,14 @@ export function generateDungeon() {
     if (game.scene.fog) {
         game.scene.fog.color.setHex(theme.fogColor);
         game.scene.fog.far = theme.fogDist;
+    }
+
+    // Update Ambient Light
+    if (game.ambientLight) {
+        const ambientColor = theme.ambientLight !== undefined ? theme.ambientLight : 0x000000;
+        const ambientIntensity = theme.ambientIntensity !== undefined ? theme.ambientIntensity : 0.0;
+        game.ambientLight.color.setHex(ambientColor);
+        game.ambientLight.intensity = ambientIntensity;
     }
 
     // Create visuals
@@ -165,6 +174,9 @@ export function clearDungeon() {
     }
     game.critters = [];
 
+    clearWaterCreatures();
+// No, better to add a clear function.
+    
     // Remove ladder if exists
     if (game.ladderMesh) {
         game.scene.remove(game.ladderMesh);

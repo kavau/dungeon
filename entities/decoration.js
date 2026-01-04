@@ -50,6 +50,16 @@ export function spawnDecorations() {
     
     // Track cells that have decorations (for one-per-cell rule)
     const decoratedCells = new Set();
+    
+    // Populate with existing decorations (e.g. from setupLevel or spawnLadder)
+    game.decorations.forEach(d => {
+        decoratedCells.add(`${d.gridX},${d.gridY}`);
+    });
+    
+    // Also mark ladder position as decorated/forbidden
+    if (game.ladderPosition) {
+        decoratedCells.add(`${game.ladderPosition.x},${game.ladderPosition.y}`);
+    }
 
     // --- SPECIAL DECORATIONS ---
     // Handled in setupLevel() or dungeon.js
@@ -135,7 +145,17 @@ export function spawnDecorations() {
                             : decorType.probability;
 
                         let adjustedProbability = baseProbability;
-                        if (prefersWall) {
+                        
+                        // Special handling for moss_patch
+                        if (decorType.name === 'moss_patch') {
+                            if (nearWall) {
+                                // Slightly higher chance near walls
+                                adjustedProbability *= 1.5;
+                            } else {
+                                // Much lower chance in open areas (to avoid ceiling clutter)
+                                adjustedProbability *= 0.2;
+                            }
+                        } else if (prefersWall) {
                             if (nearWall) {
                                 // Much higher chance near walls (3x)
                                 adjustedProbability *= 3.0;
@@ -163,7 +183,8 @@ export function spawnDecorations() {
 }
 export function updateDecorations() {
     const playerPos = game.player.position;
-    const lightCullDistance = 20; // Increased to match larger light radius
+    // Use fog distance for culling, or default to 30 if fog not set
+    const lightCullDistance = (game.scene && game.scene.fog) ? game.scene.fog.far : 30;
 
     for (let decoration of game.decorations) {
         // Light Culling
@@ -214,6 +235,7 @@ export function updateDecorations() {
 export function spawnGlowWorms() {
     const cellSize = game.dungeon.cellSize;
     const numWorms = 5 + Math.floor(Math.random() * 5); // Reduced to 5-10
+    const level = game.dungeon.level || 1;
     
     for (let i = 0; i < numWorms; i++) {
         // Find random empty spot
@@ -222,10 +244,24 @@ export function spawnGlowWorms() {
         do {
             x = Math.floor(Math.random() * game.dungeon.width);
             y = Math.floor(Math.random() * game.dungeon.height);
+            
+            // Level 5 Special Rule: No glow worms in the lake area
+            if (level === 5) {
+                const lakeCenterX = game.dungeon.width - 12;
+                const lakeCenterY = 12;
+                const lakeRadius = 12.0; // Safe zone radius
+                const dx = x - lakeCenterX;
+                const dy = y - lakeCenterY;
+                if (dx*dx + dy*dy < lakeRadius*lakeRadius) {
+                    // Force retry
+                    x = -1; 
+                }
+            }
+            
             attempts++;
-        } while (dungeonMap[y][x] !== 0 && attempts < 100);
+        } while ((x === -1 || dungeonMap[y][x] !== 0) && attempts < 100);
         
-        if (dungeonMap[y][x] === 0) {
+        if (x !== -1 && dungeonMap[y][x] === 0) {
             createGlowWorm(x, y);
         }
     }

@@ -124,6 +124,7 @@ export function movePlayerForward() {
         if (collision === 'wall') logMessage("You bump into a wall.", 'combat');
         else if (collision === 'door') logMessage("The door is closed.", 'combat');
         else if (collision === 'monster') logMessage("A monster blocks your way.", 'combat');
+        else if (collision === 'water') logMessage("The water is too deep to cross.", 'combat');
     }
 }
 
@@ -165,6 +166,7 @@ export function movePlayerBackward() {
         if (collision === 'wall') logMessage("You bump into a wall.", 'combat');
         else if (collision === 'door') logMessage("The door is closed.", 'combat');
         else if (collision === 'monster') logMessage("A monster blocks your way.", 'combat');
+        else if (collision === 'water') logMessage("The water is too deep to cross.", 'combat');
     }
 }
 
@@ -379,7 +381,10 @@ export function updatePlayer(deltaTime) {
                         Math.sin(time * 11.7) * 0.02;
                         
         game.player.light.intensity = game.player.torch.intensityBase + flicker * game.player.torch.intensityVar;
-        game.player.light.distance = game.player.torch.rangeBase + flicker * game.player.torch.rangeVar;
+        
+        // Apply light scale from settings
+        const scale = game.lightScale || 1.0;
+        game.player.light.distance = (game.player.torch.rangeBase + flicker * game.player.torch.rangeVar) * scale;
         
         // Slight position wobble to simulate holding it
         const wobbleX = Math.sin(time * 1.5) * 0.02;

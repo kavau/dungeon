@@ -19,10 +19,86 @@ export function createDungeonVisuals(dungeonMap, theme, cellSize) {
 
     // Create floor
     const floorTexture = createFloorTexture(width, height, theme);
+    
+    // Use higher segment count for natural caves to allow displacement
+    const floorSegmentsX = theme.noTiles ? width * 4 : 1;
+    const floorSegmentsZ = theme.noTiles ? height * 4 : 1;
+    
     const floorGeometry = new THREE.PlaneGeometry(
         width * cellSize,
-        height * cellSize
+        height * cellSize,
+        floorSegmentsX,
+        floorSegmentsZ
     );
+    
+    // Displace floor vertices for natural look
+    if (theme.noTiles) {
+        const pos = floorGeometry.attributes.position;
+        const totalWidth = width * cellSize;
+        const totalHeight = height * cellSize;
+
+        for (let i = 0; i < pos.count; i++) {
+            const x = pos.getX(i);
+            const y = pos.getY(i); // Local Y (World Z)
+            
+            // Calculate Grid Coordinates
+            const wx = x + totalWidth / 2;
+            const wy = -y + totalHeight / 2;
+            
+            const gridX = Math.floor(wx / cellSize);
+            const gridY = Math.floor(wy / cellSize);
+            
+            let isWater = false;
+            let isNearWater = false;
+            
+            // Check current cell
+            if (gridX >= 0 && gridX < width && gridY >= 0 && gridY < height) {
+                if (dungeonMap[gridY][gridX] === 2) {
+                    isWater = true;
+                } else {
+                    // Check neighbors for proximity to water
+                    // We check if we are close to a water cell border
+                    const localX = wx % cellSize;
+                    const localY = wy % cellSize;
+                    const margin = cellSize * 0.4; // Influence radius
+                    
+                    if (localX < margin && gridX > 0 && dungeonMap[gridY][gridX-1] === 2) isNearWater = true;
+                    if (localX > cellSize - margin && gridX < width-1 && dungeonMap[gridY][gridX+1] === 2) isNearWater = true;
+                    if (localY < margin && gridY > 0 && dungeonMap[gridY-1][gridX] === 2) isNearWater = true;
+                    if (localY > cellSize - margin && gridY < height-1 && dungeonMap[gridY+1][gridX] === 2) isNearWater = true;
+                    
+                    // Diagonals
+                    if (localX < margin && localY < margin && gridX > 0 && gridY > 0 && dungeonMap[gridY-1][gridX-1] === 2) isNearWater = true;
+                    if (localX > cellSize - margin && localY < margin && gridX < width-1 && gridY > 0 && dungeonMap[gridY-1][gridX+1] === 2) isNearWater = true;
+                    if (localX < margin && localY > cellSize - margin && gridX > 0 && gridY < height-1 && dungeonMap[gridY+1][gridX-1] === 2) isNearWater = true;
+                    if (localX > cellSize - margin && localY > cellSize - margin && gridX < width-1 && gridY < height-1 && dungeonMap[gridY+1][gridX+1] === 2) isNearWater = true;
+                }
+            }
+            
+            if (isWater) {
+                // Deep seabed
+                pos.setZ(i, -1.5);
+            } else if (isNearWater) {
+                // Shoreline - slope down
+                // Use a lower height to ensure it goes under water
+                // Add some noise but keep it low
+                let z = -0.5 + (Math.random() * 0.2);
+                pos.setZ(i, z);
+            } else {
+                // Land
+                // Noise for uneven ground
+                let z = 0;
+                z += Math.sin(x * 0.2) * 0.15;
+                z += Math.cos(y * 0.2) * 0.15;
+                z += Math.sin(x * 0.5 + y * 0.5) * 0.05;
+                z += (Math.random() - 0.5) * 0.05;
+                
+                pos.setZ(i, z);
+            }
+        }
+        floorGeometry.computeVertexNormals();
+    }
+
     const floorMaterial = new THREE.MeshStandardMaterial({
         map: floorTexture,
         color: 0xaaaaaa,
@@ -84,7 +160,49 @@ export function createDungeonVisuals(dungeonMap, theme, cellSize) {
     
     // Create walls based on map
     const wallTexture = createWallTexture(theme);
-    const wallGeometry = new THREE.BoxGeometry(cellSize * 1.1, 6, cellSize * 1.1);
+    
+    // For natural caves, use more segments and displace vertices
+    const wallSegments = theme.noTiles ? 4 : 1;
+    const wallGeometry = new THREE.BoxGeometry(
+        cellSize * 1.1, 
+        6, 
+        cellSize * 1.1,
+        wallSegments,
+        wallSegments,
+        wallSegments
+    );
+    
+    if (theme.noTiles) {
+        const pos = wallGeometry.attributes.position;
+        const center = new THREE.Vector3(); // Box center is 0,0,0
+        
+        for (let i = 0; i < pos.count; i++) {
+            const x = pos.getX(i);
+            const y = pos.getY(i);
+            const z = pos.getZ(i);
+            
+            // Skip top and bottom faces to keep them flat-ish for stacking/ceiling
+            if (Math.abs(y) > 2.9) continue;
+            
+            // Noise based on position
+            const noise = (Math.sin(x * 2.0) + Math.cos(y * 1.5) + Math.sin(z * 2.0)) * 0.15;
+            const random = (Math.random() - 0.5) * 0.1;
+            
+            // Push vertices out/in slightly along their normal (approximate)
+            // Since it's a box centered at 0, normal is roughly direction from center
+            // But for simple roughness, just adding to x/z is enough
+            
+            // We want "jagged" rock, so sharp changes
+            if (Math.abs(x) > cellSize * 0.4) { // Side faces (East/West)
+                pos.setX(i, x + noise + random);
+            }
+            if (Math.abs(z) > cellSize * 0.4) { // Front/Back faces (North/South)
+                pos.setZ(i, z + noise + random);
+            }
+        }
+        wallGeometry.computeVertexNormals();
+    }
+
     const wallMaterial = new THREE.MeshStandardMaterial({
         map: wallTexture,
         color: 0xffffff,
@@ -131,6 +249,70 @@ export function createDungeonVisuals(dungeonMap, theme, cellSize) {
     
     visuals.walls = [wallMesh]; // Return as array containing single mesh for compatibility
     
+    // Create Water (Type 2)
+    const waterGeometry = new THREE.PlaneGeometry(cellSize, cellSize);
+    const waterMaterial = new THREE.MeshStandardMaterial({
+        color: 0x004488,
+        transparent: true,
+        opacity: 0.5, // Reduced opacity to see fish
+        roughness: 0.1,
+        metalness: 0.8,
+        emissive: 0x001133,
+        emissiveIntensity: 0.2
+    });
+    
+    // Create Seabed (to hide floor tiles and simulate depth)
+    const seabedMaterial = new THREE.MeshBasicMaterial({
+        color: 0x000510, // Very dark blue/black
+    });
+
+    // Count water tiles
+    let waterCount = 0;
+    for (let y = 0; y < dungeonMap.length; y++) {
+        for (let x = 0; x < dungeonMap[y].length; x++) {
+            if (dungeonMap[y][x] === 2) waterCount++;
+        }
+    }
+    
+    if (waterCount > 0) {
+        // Water Surface
+        const waterMesh = new THREE.InstancedMesh(waterGeometry, waterMaterial, waterCount);
+        waterMesh.receiveShadow = true;
+        
+        // Seabed
+        const seabedMesh = new THREE.InstancedMesh(waterGeometry, seabedMaterial, waterCount);
+
+        let wIndex = 0;
+        for (let y = 0; y < dungeonMap.length; y++) {
+            for (let x = 0; x < dungeonMap[y].length; x++) {
+                if (dungeonMap[y][x] === 2) {
+                    // Water Surface
+                    dummy.position.set(
+                        x * cellSize + cellSize / 2,
+                        0.2, // Slightly above floor
+                        y * cellSize + cellSize / 2
+                    );
+                    dummy.rotation.set(-Math.PI / 2, 0, 0);
+                    dummy.scale.set(1, 1, 1);
+                    dummy.updateMatrix();
+                    waterMesh.setMatrixAt(wIndex, dummy.matrix);
+                    
+                    // Seabed (just above floor to cover it)
+                    dummy.position.y = 0.02;
+                    dummy.updateMatrix();
+                    seabedMesh.setMatrixAt(wIndex, dummy.matrix);
+                    
+                    wIndex++;
+                }
+            }
+        }
+        // Reset rotation for other uses of dummy if any (none here but good practice)
+        dummy.rotation.set(0, 0, 0);
+        
+        visuals.walls.push(seabedMesh); // Add seabed first
+        visuals.walls.push(waterMesh); // Add water surface
+    }
+
     return visuals;
 }
 

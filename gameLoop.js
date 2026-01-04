@@ -1,9 +1,10 @@
 import { game, dungeonMap } from './state.js';
 import { logMessage } from './ui.js';
-import { spawnSingleMonster, spawnMonsters } from './entities/monster.js';
+import { spawnSingleMonster, spawnMonsters, createMonster, MONSTER_TYPES } from './entities/monster.js';
 import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder } from './dungeon.js';
 import { spawnTreasures } from './entities/items.js';
 import { spawnDecorations, spawnGlowWorms, createDecoration, DECORATION_TYPES } from './entities/decoration.js';
+import { spawnWaterCreatures } from './entities/waterCreatures.js';
 import { LEVEL_CONFIG } from './levelConfig.js';
 
 export function setupLevel() {
@@ -16,7 +17,7 @@ export function setupLevel() {
     let facing = 1; // Default East
     
     if (config.setup) {
-        const result = config.setup(game, dungeonMap, { createDecoration, DECORATION_TYPES });
+        const result = config.setup(game, dungeonMap, { createDecoration, DECORATION_TYPES, createMonster, MONSTER_TYPES });
         px = result.x;
         py = result.y;
         facing = result.facing;
@@ -71,14 +72,17 @@ export function setupLevel() {
     // Spawn doors first (they block all decorations)
     spawnDoors();
     
+    // Spawn ladder to next level (creates hole in ceiling, must be before decorations)
+    spawnLadder();
+
     // Spawn decorations (respects doors and existing decorations)
     spawnDecorations();
     
     // Spawn glow worms
     spawnGlowWorms();
-    
-    // Spawn ladder to next level
-    spawnLadder();
+
+    // Spawn water creatures (fish, jellyfish)
+    spawnWaterCreatures();
     
     if (game.started) {
         const theme = config; // config has name, title, description
@@ -88,12 +92,17 @@ export function setupLevel() {
         const screenEl = document.getElementById('level-screen');
         
         if (titleEl && descEl && screenEl) {
+            console.log("Showing level screen for: " + theme.title);
             titleEl.textContent = theme.title;
             descEl.textContent = theme.description;
             screenEl.style.display = 'flex';
             game.showingLevelScreen = true;
+            game.levelScreenShownTime = Date.now();
+        } else {
+            console.error("Level screen elements not found!");
         }
     } else {
+        console.log("Game not started yet, skipping level screen");
         logMessage(`Welcome to Level ${game.dungeon.level}`);
     }
 }
@@ -160,15 +169,17 @@ export function checkCollision(position) {
         for (let x = minX; x <= maxX; x++) {
             // Check bounds
             if (z >= 0 && z < game.dungeon.height && x >= 0 && x < game.dungeon.width) {
-                if (dungeonMap[z][x] === 1) {
-                    // Precise AABB check against this wall cell
+                const cellType = dungeonMap[z][x];
+                // 1 = Wall, 2 = Water/Pit
+                if (cellType === 1 || cellType === 2) {
+                    // Precise AABB check against this wall/water cell
                     const wallX = x * cellSize + cellSize / 2;
                     const wallZ = z * cellSize + cellSize / 2;
                     const halfSize = cellSize / 2;
                     
                     if (Math.abs(position.x - wallX) < (halfSize + playerRadius) &&
                         Math.abs(position.z - wallZ) < (halfSize + playerRadius)) {
-                        return 'wall';
+                        return cellType === 2 ? 'water' : 'wall';
                     }
                 }
             }
@@ -262,6 +273,62 @@ export function checkAndSpawnMonsters() {
         const toSpawn = Math.min(maxMonsters - game.monsters.length, 5);
         for (let i = 0; i < toSpawn; i++) {
             spawnSingleMonster();
+        }
+    }
+}
+
+export function updateSceneLights() {
+    const scale = game.lightScale || 1.0;
+    
+    // Helper to update a light
+    const updateLight = (light) => {
+        if (light.userData.baseDistance === undefined) {
+            light.userData.baseDistance = light.distance;
+        }
+        light.distance = light.userData.baseDistance * scale;
+    };
+
+    // 1. Decorations (Mushrooms, etc)
+    if (game.decorations) {
+        for (let d of game.decorations) {
+            if (d.mesh) {
+                // Check for direct light (mushrooms)
+                if (d.mesh.userData.light) {
+                    updateLight(d.mesh.userData.light);
+                }
+                // Check for children lights (if any)
+                d.mesh.traverse((child) => {
+                    if (child.isLight) {
+                        updateLight(child);
+                    }
+                });
+            }
+        }
+    }
+    
+    // 2. Monsters (Torches, Eyes)
+    if (game.monsters) {
+        for (let m of game.monsters) {
+            if (m.mesh) {
+                m.mesh.traverse((child) => {
+                    if (child.isLight) {
+                        updateLight(child);
+                    }
+                });
+            }
+        }
+    }
+    
+    // 3. Treasures (Dropped Torches)
+    if (game.treasures) {
+        for (let t of game.treasures) {
+            if (t.mesh) {
+                t.mesh.traverse((child) => {
+                    if (child.isLight) {
+                        updateLight(child);
+                    }
+                });
+            }
         }
     }
 }

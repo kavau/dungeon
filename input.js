@@ -13,7 +13,8 @@ import {
     updateDebugArrows,
     toggleMap,
     updateHealthDisplay,
-    logMessage
+    logMessage,
+    toggleSettings
 } from './ui.js';
 import { teleportToLevel } from './gameLoop.js';
 
@@ -48,6 +49,15 @@ export function setupControls() {
                 const debugWindow = document.getElementById('debug-window');
                 if (debugWindow) debugWindow.style.display = 'none';
             }
+
+            // If on intro screen, start the game
+            if (!game.started) {
+                game.started = true;
+                const introScreen = document.getElementById('intro-screen');
+                if (introScreen) {
+                    introScreen.style.display = 'none';
+                }
+            }
             return;
         }
 
@@ -70,11 +80,18 @@ export function setupControls() {
 
         // Handle level screen
         if (game.showingLevelScreen) {
+            // Prevent accidental dismissal (e.g. holding the interaction key)
+            if (game.levelScreenShownTime && Date.now() - game.levelScreenShownTime < 1000) {
+                console.log("Ignoring key press during level screen cooldown");
+                return;
+            }
+
             // Ignore modifier keys alone
             if (e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift' || e.key === 'Meta') {
                 return;
             }
             
+            console.log("Dismissing level screen");
             game.showingLevelScreen = false;
             const levelScreen = document.getElementById('level-screen');
             if (levelScreen) {
@@ -82,6 +99,12 @@ export function setupControls() {
             }
             e.preventDefault();
             e.stopImmediatePropagation();
+            return;
+        }
+
+        // Toggle Settings
+        if (e.code === 'KeyV') {
+            toggleSettings();
             return;
         }
 

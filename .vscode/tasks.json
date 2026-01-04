@@ -36,6 +36,26 @@
 			"isBackground": false,
 			"problemMatcher": [],
 			"group": "none"
+		},
+		{
+			"label": "append_settings_css",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-c",
+				"cat >> style.css <<EOF\n\n#settings-menu {\n    position: fixed;\n    top: 50%;\n    left: 50%;\n    transform: translate(-50%, -50%);\n    background: rgba(0, 0, 0, 0.85);\n    border: 2px solid #666;\n    padding: 20px;\n    color: #eee;\n    z-index: 1000;\n    width: 300px;\n    border-radius: 10px;\n    box-shadow: 0 0 20px rgba(0,0,0,0.8);\n}\n\n#settings-menu h2 {\n    text-align: center;\n    margin-top: 0;\n    color: #ffaa00;\n    border-bottom: 1px solid #444;\n    padding-bottom: 10px;\n}\n\n.slider-container {\n    margin: 15px 0;\n    display: flex;\n    flex-direction: column;\n}\n\n.slider-container label {\n    margin-bottom: 5px;\n    font-weight: bold;\n}\n\n.slider-container input {\n    width: 100%;\n    cursor: pointer;\n}\n\n.slider-container span {\n    text-align: right;\n    font-size: 12px;\n    color: #aaa;\n    margin-top: 2px;\n}\nEOF\n"
+			],
+			"group": "none"
+		},
+		{
+			"label": "append_ui_js",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-c",
+				"cat >> ui.js <<EOF\n\nexport function initSettings() {\n    const menu = document.getElementById('settings-menu');\n    const brightnessSlider = document.getElementById('brightness-slider');\n    const contrastSlider = document.getElementById('contrast-slider');\n    const distanceSlider = document.getElementById('distance-slider');\n    \n    const brightnessVal = document.getElementById('brightness-val');\n    const contrastVal = document.getElementById('contrast-val');\n    const distanceVal = document.getElementById('distance-val');\n    \n    if (!menu) return;\n\n    const updateVisuals = () => {\n        const b = brightnessSlider.value;\n        const c = contrastSlider.value;\n        const d = distanceSlider.value;\n        \n        brightnessVal.textContent = b;\n        contrastVal.textContent = c;\n        distanceVal.textContent = d;\n        \n        // Apply CSS filters for brightness/contrast\n        if (game.renderer && game.renderer.domElement) {\n            game.renderer.domElement.style.filter = \\`brightness(\\${b}) contrast(\\${c})\\`;\n        }\n        \n        // Apply fog distance\n        if (game.scene && game.scene.fog) {\n            game.scene.fog.far = parseFloat(d);\n        }\n    };\n\n    brightnessSlider.addEventListener('input', updateVisuals);\n    contrastSlider.addEventListener('input', updateVisuals);\n    distanceSlider.addEventListener('input', updateVisuals);\n}\n\nexport function toggleSettings() {\n    const menu = document.getElementById('settings-menu');\n    if (menu) {\n        if (menu.style.display === 'none') {\n            menu.style.display = 'block';\n            // Sync slider with current fog if needed\n            if (game.scene && game.scene.fog) {\n                const distanceSlider = document.getElementById('distance-slider');\n                if (distanceSlider) {\n                     distanceSlider.value = game.scene.fog.far;\n                     const valDisplay = document.getElementById('distance-val');\n                     if (valDisplay) valDisplay.textContent = Math.round(game.scene.fog.far);\n                }\n            }\n        } else {\n            menu.style.display = 'none';\n        }\n    }\n}\nEOF\n"
+			],
+			"group": "none"
 		}
 	]
 }

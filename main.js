@@ -4,9 +4,10 @@ import { setupControls } from './input.js';
 import { updatePlayer } from './player.js';
 import { updateMonsters } from './entities/monster.js';
 import { updateCritters, updateDecorations } from './entities/decoration.js';
+import { updateWaterCreatures } from './entities/waterCreatures.js';
 import { updateTreasures } from './entities/items.js';
-import { updateFloatingLabels, updateDebugWindow, updateHealthDisplay, updateWealthDisplay, updateMap } from './ui.js';
-import { setupLevel } from './gameLoop.js';
+import { updateFloatingLabels, updateDebugWindow, updateHealthDisplay, updateWealthDisplay, updateMap, initSettings } from './ui.js';
+import { setupLevel, updateSceneLights } from './gameLoop.js';
 
 function init() {
     // Create scene
@@ -35,6 +36,9 @@ function init() {
 
     document.body.appendChild(game.renderer.domElement);
     
+    // Initialize settings UI
+    initSettings();
+    
     // Add lighting
     const ambientLight = new THREE.AmbientLight(0x000000, 0.0);
     game.scene.add(ambientLight);
@@ -59,8 +63,8 @@ function init() {
         rangeVar: 1.0,
         timeOffset: Math.random() * 100,
         turnsActive: 0,
-        maxTurns: 50,
-        fadeTurns: 10,
+        maxTurns: 70,
+        fadeTurns: 30,
         color: new THREE.Color(0xffaa00)
     };
     
@@ -103,8 +107,10 @@ function animate() {
         updatePlayer(deltaTime);
         updateMonsters(deltaTime);
         updateCritters(deltaTime);
+        updateWaterCreatures(deltaTime);
         updateTreasures(deltaTime);
         updateDecorations();
+        updateSceneLights();
         updateFloatingLabels();
         updateDebugWindow();
         updateMap();

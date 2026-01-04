@@ -13,40 +13,112 @@ export function createFloorTexture(width, height, theme = {}) {
     floorCtx.fillRect(0, 0, 512, 512);
     
     // Add stone tiles with variation
-    const tileSize = 64;
-    for (let y = 0; y < 512; y += tileSize) {
-        for (let x = 0; x < 512; x += tileSize) {
-            // Slight color variation per tile
-            const variation = Math.floor(Math.random() * 20 - 10);
+    if (theme.noTiles) {
+        // Natural floor texture (noise)
+        
+        // 1. Base Noise
+        for (let i = 0; i < 10000; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const val = Math.random();
+            floorCtx.fillStyle = val < 0.5 ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.05)';
+            floorCtx.fillRect(x, y, 2, 2);
+        }
+        
+        // 2. Uneven ground (Large dark/light patches)
+        for (let i = 0; i < 20; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const radius = 50 + Math.random() * 100;
+            const isDark = Math.random() < 0.6;
             
-            // Parse base color if it's a number (grey scale) or handle hex
-            let fillStyle;
-            if (typeof tileColorBase === 'number') {
-                const c = Math.max(0, Math.min(255, tileColorBase + variation));
-                fillStyle = `rgb(${c}, ${c}, ${c})`;
+            const gradient = floorCtx.createRadialGradient(x, y, 0, x, y, radius);
+            if (isDark) {
+                gradient.addColorStop(0, 'rgba(0, 0, 0, 0.2)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
             } else {
-                // Simple hex variation logic could go here, but for now assume grey if number
-                // If string, just use it
-                fillStyle = tileColorBase; 
+                gradient.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
             }
+            floorCtx.fillStyle = gradient;
+            floorCtx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+        }
+
+        // 3. Cracks and Crevices
+        floorCtx.strokeStyle = 'rgba(0,0,0,0.4)';
+        floorCtx.lineWidth = 2;
+        for (let i = 0; i < 15; i++) {
+            const startX = Math.random() * 512;
+            const startY = Math.random() * 512;
+            floorCtx.beginPath();
+            floorCtx.moveTo(startX, startY);
             
-            floorCtx.fillStyle = fillStyle;
-            floorCtx.fillRect(x + 1, y + 1, tileSize - 2, tileSize - 2);
+            let cx = startX;
+            let cy = startY;
+            const segments = 5 + Math.random() * 10;
             
-            // Add cracks and texture
-            for (let i = 0; i < 15; i++) {
-                const px = x + Math.random() * tileSize;
-                const py = y + Math.random() * tileSize;
-                const size = 1 + Math.random() * 2;
-                const darkness = Math.floor(Math.random() * 30);
-                floorCtx.fillStyle = `rgba(0,0,0,0.2)`;
-                floorCtx.fillRect(px, py, size, size);
+            for(let j=0; j<segments; j++) {
+                cx += (Math.random() - 0.5) * 40;
+                cy += (Math.random() - 0.5) * 40;
+                floorCtx.lineTo(cx, cy);
             }
+            floorCtx.stroke();
+        }
+        
+        // 4. Small stones/debris
+        for (let i = 0; i < 200; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const size = 2 + Math.random() * 4;
             
-            // Grout lines (darker)
-            floorCtx.strokeStyle = 'rgba(0,0,0,0.5)';
-            floorCtx.lineWidth = 2;
-            floorCtx.strokeRect(x, y, tileSize, tileSize);
+            // Shadow
+            floorCtx.fillStyle = 'rgba(0,0,0,0.5)';
+            floorCtx.beginPath();
+            floorCtx.arc(x + 1, y + 1, size, 0, Math.PI * 2);
+            floorCtx.fill();
+            
+            // Stone
+            floorCtx.fillStyle = 'rgba(100, 100, 100, 0.5)';
+            floorCtx.beginPath();
+            floorCtx.arc(x, y, size, 0, Math.PI * 2);
+            floorCtx.fill();
+        }
+    } else {
+        const tileSize = 64;
+        for (let y = 0; y < 512; y += tileSize) {
+            for (let x = 0; x < 512; x += tileSize) {
+                // Slight color variation per tile
+                const variation = Math.floor(Math.random() * 20 - 10);
+                
+                // Parse base color if it's a number (grey scale) or handle hex
+                let fillStyle;
+                if (typeof tileColorBase === 'number') {
+                    const c = Math.max(0, Math.min(255, tileColorBase + variation));
+                    fillStyle = `rgb(${c}, ${c}, ${c})`;
+                } else {
+                    // Simple hex variation logic could go here, but for now assume grey if number
+                    // If string, just use it
+                    fillStyle = tileColorBase; 
+                }
+                
+                floorCtx.fillStyle = fillStyle;
+                floorCtx.fillRect(x + 1, y + 1, tileSize - 2, tileSize - 2);
+                
+                // Add cracks and texture
+                for (let i = 0; i < 15; i++) {
+                    const px = x + Math.random() * tileSize;
+                    const py = y + Math.random() * tileSize;
+                    const size = 1 + Math.random() * 2;
+                    const darkness = Math.floor(Math.random() * 30);
+                    floorCtx.fillStyle = `rgba(0,0,0,0.2)`;
+                    floorCtx.fillRect(px, py, size, size);
+                }
+                
+                // Grout lines (darker)
+                floorCtx.strokeStyle = 'rgba(0,0,0,0.5)';
+                floorCtx.lineWidth = 2;
+                floorCtx.strokeRect(x, y, tileSize, tileSize);
+            }
         }
     }
     
@@ -113,45 +185,130 @@ export function createWallTexture(theme = {}) {
     wallCtx.fillRect(0, 0, 512, 512);
     
     // Add rough stone blocks
-    const blockSizes = [
-        { w: 128, h: 64 },
-        { w: 96, h: 48 },
-        { w: 112, h: 56 }
-    ];
-    
-    let currentY = 0;
-    while (currentY < 512) {
-        let currentX = 0;
-        const rowHeight = blockSizes[Math.floor(Math.random() * blockSizes.length)].h;
+    if (theme.noTiles) {
+        // Natural rock wall texture
         
-        while (currentX < 512) {
-            const block = blockSizes[Math.floor(Math.random() * blockSizes.length)];
-            
-            // Color variation for each block
-            const variation = Math.floor(Math.random() * 30 - 15);
-            wallCtx.fillStyle = `rgb(${baseWallColor.r + variation}, ${baseWallColor.g + variation}, ${baseWallColor.b + variation})`;
-            wallCtx.fillRect(currentX + 2, currentY + 2, block.w - 4, rowHeight - 4);
-            
-            // Add texture detail - cracks and chips
-            for (let i = 0; i < 25; i++) {
-                const px = currentX + Math.random() * block.w;
-                const py = currentY + Math.random() * rowHeight;
-                const size = 1 + Math.random() * 3;
-                const darkness = Math.floor(Math.random() * 40);
-                wallCtx.fillStyle = `rgba(0,0,0,0.3)`;
-                wallCtx.beginPath();
-                wallCtx.arc(px, py, size, 0, Math.PI * 2);
-                wallCtx.fill();
-            }
-            
-            // Mortar lines (darker gaps between stones)
-            wallCtx.strokeStyle = 'rgba(0,0,0,0.5)';
-            wallCtx.lineWidth = 3;
-            wallCtx.strokeRect(currentX, currentY, block.w, rowHeight);
-            
-            currentX += block.w;
+        // 1. Base Noise (High frequency)
+        for (let i = 0; i < 10000; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const val = Math.random();
+            wallCtx.fillStyle = val < 0.5 ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
+            wallCtx.fillRect(x, y, 2, 2);
         }
-        currentY += rowHeight;
+
+        // 2. Horizontal Strata (Layered rock)
+        for (let y = 0; y < 512; y += 10 + Math.random() * 30) {
+            const height = 5 + Math.random() * 20;
+            // Darker bands
+            wallCtx.fillStyle = `rgba(0, 0, 0, ${0.1 + Math.random() * 0.2})`;
+            wallCtx.fillRect(0, y, 512, height);
+            
+            // Thin cracks between strata
+            if (Math.random() < 0.5) {
+                wallCtx.fillStyle = 'rgba(0,0,0,0.4)';
+                wallCtx.fillRect(0, y, 512, 1 + Math.random() * 2);
+            }
+        }
+        
+        // 3. Vertical Fissures (Jagged cracks)
+        wallCtx.strokeStyle = 'rgba(0,0,0,0.6)';
+        wallCtx.lineWidth = 2;
+        for (let i = 0; i < 15; i++) {
+            const startX = Math.random() * 512;
+            const startY = Math.random() * 512;
+            const length = 50 + Math.random() * 150;
+            
+            wallCtx.beginPath();
+            wallCtx.moveTo(startX, startY);
+            
+            let cx = startX;
+            let cy = startY;
+            
+            // Jagged line downwards
+            for(let j=0; j<length; j+=5) {
+                cx += (Math.random() - 0.5) * 8;
+                cy += 5;
+                wallCtx.lineTo(cx, cy);
+            }
+            wallCtx.stroke();
+            
+            // Add a faint shadow/highlight to give it depth
+            wallCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+            wallCtx.beginPath();
+            wallCtx.moveTo(startX + 2, startY);
+            cx = startX + 2;
+            cy = startY;
+            for(let j=0; j<length; j+=5) {
+                cx += (Math.random() - 0.5) * 8;
+                cy += 5;
+                wallCtx.lineTo(cx, cy);
+            }
+            wallCtx.stroke();
+            wallCtx.strokeStyle = 'rgba(0,0,0,0.6)'; // Reset
+        }
+
+        // 4. Angular Rock Facets (Chipped stone look)
+        for (let i = 0; i < 60; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const size = 10 + Math.random() * 30;
+            
+            // Randomly light or dark to simulate angled surfaces catching light
+            const isHighlight = Math.random() > 0.5;
+            wallCtx.fillStyle = isHighlight ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.15)';
+            
+            wallCtx.beginPath();
+            // Draw a random triangle/quad
+            wallCtx.moveTo(x, y);
+            wallCtx.lineTo(x + size, y + (Math.random() - 0.5) * 10);
+            wallCtx.lineTo(x + size * 0.5, y + size);
+            if (Math.random() > 0.5) {
+                wallCtx.lineTo(x - size * 0.2, y + size * 0.8);
+            }
+            wallCtx.fill();
+        }
+    } else {
+        const blockSizes = [
+            { w: 128, h: 64 },
+            { w: 96, h: 48 },
+            { w: 112, h: 56 }
+        ];
+        
+        let currentY = 0;
+        while (currentY < 512) {
+            let currentX = 0;
+            const rowHeight = blockSizes[Math.floor(Math.random() * blockSizes.length)].h;
+            
+            while (currentX < 512) {
+                const block = blockSizes[Math.floor(Math.random() * blockSizes.length)];
+                
+                // Color variation for each block
+                const variation = Math.floor(Math.random() * 30 - 15);
+                wallCtx.fillStyle = `rgb(${baseWallColor.r + variation}, ${baseWallColor.g + variation}, ${baseWallColor.b + variation})`;
+                wallCtx.fillRect(currentX + 2, currentY + 2, block.w - 4, rowHeight - 4);
+                
+                // Add texture detail - cracks and chips
+                for (let i = 0; i < 25; i++) {
+                    const px = currentX + Math.random() * block.w;
+                    const py = currentY + Math.random() * rowHeight;
+                    const size = 1 + Math.random() * 3;
+                    const darkness = Math.floor(Math.random() * 40);
+                    wallCtx.fillStyle = `rgba(0,0,0,0.3)`;
+                    wallCtx.beginPath();
+                    wallCtx.arc(px, py, size, 0, Math.PI * 2);
+                    wallCtx.fill();
+                }
+                
+                // Mortar lines (darker gaps between stones)
+                wallCtx.strokeStyle = 'rgba(0,0,0,0.5)';
+                wallCtx.lineWidth = 3;
+                wallCtx.strokeRect(currentX, currentY, block.w, rowHeight);
+                
+                currentX += block.w;
+            }
+            currentY += rowHeight;
+        }
     }
     
     // Add moss and weathering

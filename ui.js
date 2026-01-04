@@ -58,6 +58,8 @@ function drawMap() {
         for (let x = 0; x < width; x++) {
             if (dungeonMap[y][x] === 1) {
                 ctx.fillStyle = '#444'; // Wall
+            } else if (dungeonMap[y][x] === 2) {
+                ctx.fillStyle = '#0000aa'; // Water
             } else {
                 ctx.fillStyle = '#111'; // Floor
             }
@@ -363,6 +365,69 @@ export function updateDebugArrows() {
     for (let decoration of game.decorations) {
         if (decoration.debugArrow) {
             decoration.debugArrow.visible = game.controls.shiftPressed;
+        }
+    }
+}
+
+export function initSettings() {
+    const menu = document.getElementById('settings-menu');
+    const brightnessSlider = document.getElementById('brightness-slider');
+    const contrastSlider = document.getElementById('contrast-slider');
+    const distanceSlider = document.getElementById('distance-slider');
+    
+    const brightnessVal = document.getElementById('brightness-val');
+    const contrastVal = document.getElementById('contrast-val');
+    const distanceVal = document.getElementById('distance-val');
+    
+    if (!menu) return;
+
+    const updateVisuals = () => {
+        const b = brightnessSlider.value;
+        const c = contrastSlider.value;
+        const d = distanceSlider.value;
+        
+        brightnessVal.textContent = b;
+        contrastVal.textContent = c;
+        distanceVal.textContent = d;
+        
+        // Apply CSS filters for brightness/contrast
+        if (game.renderer && game.renderer.domElement) {
+            game.renderer.domElement.style.filter = `brightness(${b}) contrast(${c})`;
+        }
+        
+        // Apply fog distance
+        if (game.scene && game.scene.fog) {
+            game.scene.fog.far = parseFloat(d);
+        }
+        
+        // Update global light scale
+        game.lightScale = parseFloat(d) / 40.0;
+    };
+
+    brightnessSlider.addEventListener('input', updateVisuals);
+    contrastSlider.addEventListener('input', updateVisuals);
+    distanceSlider.addEventListener('input', updateVisuals);
+    
+    // Apply initial settings
+    updateVisuals();
+}
+
+export function toggleSettings() {
+    const menu = document.getElementById('settings-menu');
+    if (menu) {
+        if (menu.style.display === 'none') {
+            menu.style.display = 'block';
+            // Sync slider with current fog if needed
+            if (game.scene && game.scene.fog) {
+                const distanceSlider = document.getElementById('distance-slider');
+                if (distanceSlider) {
+                     distanceSlider.value = game.scene.fog.far;
+                     const valDisplay = document.getElementById('distance-val');
+                     if (valDisplay) valDisplay.textContent = Math.round(game.scene.fog.far);
+                }
+            }
+        } else {
+            menu.style.display = 'none';
         }
     }
 }

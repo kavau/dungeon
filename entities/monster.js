@@ -480,6 +480,18 @@ export function spawnMonsters() {
         const x = Math.floor(Math.random() * game.dungeon.width);
         const y = Math.floor(Math.random() * game.dungeon.height);
         
+        // Level 5 Special Rule: No monsters in the lake area
+        if (level === 5) {
+            const lakeCenterX = game.dungeon.width - 12;
+            const lakeCenterY = 12;
+            const lakeRadius = 12.0; // Safe zone radius
+            const dx = x - lakeCenterX;
+            const dy = y - lakeCenterY;
+            if (dx*dx + dy*dy < lakeRadius*lakeRadius) {
+                continue;
+            }
+        }
+
         // Check if space is walkable and not too close to player
         if (dungeonMap[y][x] === 0) {
             const worldX = x * cellSize + cellSize / 2;
@@ -511,6 +523,18 @@ export function spawnSingleMonster() {
         const x = Math.floor(Math.random() * game.dungeon.width);
         const y = Math.floor(Math.random() * game.dungeon.height);
         
+        // Level 5 Special Rule: No monsters in the lake area
+        if (level === 5) {
+            const lakeCenterX = game.dungeon.width - 12;
+            const lakeCenterY = 12;
+            const lakeRadius = 12.0; // Safe zone radius
+            const dx = x - lakeCenterX;
+            const dy = y - lakeCenterY;
+            if (dx*dx + dy*dy < lakeRadius*lakeRadius) {
+                continue;
+            }
+        }
+
         // Check if space is walkable and not occupied
         if (dungeonMap[y][x] === 0) {
             const worldX = x * cellSize + cellSize / 2;

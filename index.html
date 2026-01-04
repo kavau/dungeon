@@ -60,6 +60,25 @@
     
     <div id="message-log"></div>
 
+    <div id="settings-menu" style="display: none;">
+        <h2>Visual Settings</h2>
+        <div class="slider-container">
+            <label for="brightness-slider">Brightness</label>
+            <input type="range" id="brightness-slider" min="0.5" max="2.0" step="0.1" value="2.0">
+            <span id="brightness-val">2.0</span>
+        </div>
+        <div class="slider-container">
+            <label for="contrast-slider">Contrast</label>
+            <input type="range" id="contrast-slider" min="0.5" max="2.0" step="0.1" value="1.1">
+            <span id="contrast-val">1.1</span>
+        </div>
+        <div class="slider-container">
+            <label for="distance-slider">View Distance</label>
+            <input type="range" id="distance-slider" min="10" max="100" step="5" value="40">
+            <span id="distance-val">40</span>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script type="module" src="main.js"></script>
 </body>

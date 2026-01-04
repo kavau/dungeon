@@ -1,4 +1,7 @@
+import { game, dungeonMap } from '../state.js';
+
 export function createDecorationVisuals(type, gridX, gridY) {
+    const cellSize = game.dungeon.cellSize;
     const decorationGroup = new THREE.Group();
     decorationGroup.userData.type = 'decoration';
     decorationGroup.userData.decorationType = type.name;
@@ -206,26 +209,121 @@ export function createDecorationVisuals(type, gridX, gridY) {
         }
         
         case 'moss_patch': {
-            // Flat mossy patch
-            const radius = 0.5 + Math.random() * 0.5;
-            const geometry = new THREE.CircleGeometry(radius, 8);
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x225522,
-                emissive: 0x114411,
-                emissiveIntensity: 0.4,
-                roughness: 1.0,
-                side: THREE.DoubleSide
-            });
+            // Determine placement: Floor, Ceiling, or Wall
+            // Preference: Wall > Ceiling > Floor
             
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.rotation.x = -Math.PI / 2;
-            mesh.position.y = 0.01;
+            const neighbors = [
+                { x: 0, y: -1, type: 'wall', rot: 0, pos: {x:0, y:cellSize/2, z:-cellSize/2 + 0.05} }, // North Wall
+                { x: 1, y: 0, type: 'wall', rot: -Math.PI/2, pos: {x:cellSize/2 - 0.05, y:cellSize/2, z:0} }, // East Wall
+                { x: 0, y: 1, type: 'wall', rot: Math.PI, pos: {x:0, y:cellSize/2, z:cellSize/2 - 0.05} }, // South Wall
+                { x: -1, y: 0, type: 'wall', rot: Math.PI/2, pos: {x:-cellSize/2 + 0.05, y:cellSize/2, z:0} } // West Wall
+            ];
             
-            decorationGroup.add(mesh);
+            const validWalls = [];
+            for(let n of neighbors) {
+                const nx = gridX + n.x;
+                const ny = gridY + n.y;
+                if(nx >= 0 && nx < game.dungeon.width && ny >= 0 && ny < game.dungeon.height) {
+                    if(dungeonMap[ny][nx] === 1) { // Wall
+                        validWalls.push(n);
+                    }
+                }
+            }
+            
+            let placement = 'floor';
+            let selectedWall = null;
+            
+            // Adjusted probabilities for better distribution
+            if (validWalls.length > 0) {
+                // If walls are nearby: 60% Wall, 20% Floor, 20% Ceiling
+                const r = Math.random();
+                if (r < 0.6) {
+                    placement = 'wall';
+                    selectedWall = validWalls[Math.floor(Math.random() * validWalls.length)];
+                } else if (r < 0.8) {
+                    placement = 'floor';
+                } else {
+                    placement = 'ceiling';
+                }
+            } else {
+                // Open space: 50% Floor, 50% Ceiling
+                // (Previously was 10% Floor, 90% Ceiling)
+                if (Math.random() < 0.5) {
+                    placement = 'floor';
+                } else {
+                    placement = 'ceiling';
+                }
+            }
+            
+            // Create a cluster of moss patches instead of one big circle
+            const mossGroup = new THREE.Group();
+            
+            // Base position/rotation setup
+            if (placement === 'wall') {
+                mossGroup.rotation.y = selectedWall.rot;
+                mossGroup.position.copy(selectedWall.pos);
+                mossGroup.position.y = Math.random() * 3.0 + 0.5;
+            } else if (placement === 'ceiling') {
+                mossGroup.rotation.x = Math.PI / 2;
+                mossGroup.position.y = 3.95; 
+            } else {
+                mossGroup.rotation.x = -Math.PI / 2;
+                mossGroup.position.y = 0.02;
+            }
+            
+            decorationGroup.add(mossGroup);
 
-            // Add soft glow light
-            const light = new THREE.PointLight(0x22ff22, 1.0, 4);
-            light.position.set(0, 0.5, 0);
+            // Generate 5-12 small patches for organic look
+            const numPatches = 5 + Math.floor(Math.random() * 8);
+            
+            for (let i = 0; i < numPatches; i++) {
+                const radius = 0.1 + Math.random() * 0.25;
+                // Irregular circle (using low segments makes it look more jagged)
+                const segments = 5 + Math.floor(Math.random() * 4); 
+                const geometry = new THREE.CircleGeometry(radius, segments);
+                
+                // Varying shades of green/teal
+                const g = 150 + Math.floor(Math.random() * 105);
+                const b = 50 + Math.floor(Math.random() * 100);
+                const color = new THREE.Color(`rgb(50, ${g}, ${b})`);
+                
+                const material = new THREE.MeshStandardMaterial({
+                    color: color,
+                    emissive: color,
+                    emissiveIntensity: 0.3 + Math.random() * 0.3, // Softer glow
+                    roughness: 1.0,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    opacity: 0.5 + Math.random() * 0.4
+                });
+                
+                const patch = new THREE.Mesh(geometry, material);
+                
+                // Random offset within a larger area
+                const angle = Math.random() * Math.PI * 2;
+                const dist = Math.random() * 0.6;
+                patch.position.set(Math.cos(angle) * dist, Math.sin(angle) * dist, i * 0.01);
+                
+                // Random rotation for irregularity
+                patch.rotation.z = Math.random() * Math.PI * 2;
+                
+                mossGroup.add(patch);
+            }
+
+            // Add soft glow light (Reduced intensity)
+            const light = new THREE.PointLight(0x66ff88, 0.5, 5);
+            light.position.copy(mossGroup.position);
+            
+            // Move light slightly away from surface
+            if (placement === 'wall') {
+                const normal = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), mossGroup.rotation.y);
+                light.position.add(normal.multiplyScalar(0.3));
+            } else if (placement === 'ceiling') {
+                light.position.y -= 0.3;
+            } else {
+                light.position.y += 0.3;
+            }
+            
             decorationGroup.add(light);
             
             // Store reference for culling
@@ -753,8 +851,8 @@ export function createDecorationVisuals(type, gridX, gridY) {
         case 'dead_adventurer': {
             // Dead Adventurer - Skeleton with gear
             const bodyGroup = new THREE.Group();
-            const boneMat = new THREE.MeshStandardMaterial({ color: 0xd4c5b0 });
-            const armorMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.8, roughness: 0.4 });
+            const boneMat = new THREE.MeshStandardMaterial({ color: 0x887766 }); // Darker bone
+            const armorMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.6, roughness: 0.7 }); // Darker, rusty armor
             
             // Torso (Ribcage)
             const torsoGeom = new THREE.CylinderGeometry(0.1, 0.08, 0.3, 8);
