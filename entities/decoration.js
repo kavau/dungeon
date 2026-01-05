@@ -1,6 +1,7 @@
 import { game, dungeonMap } from '../state.js';
 import { createDecorationVisuals } from '../visuals/decorationRenderer.js';
 import { LEVEL_CONFIG } from '../levelConfig.js';
+import { createBloodStain } from '../effects.js';
 
 export const DECORATION_TYPES = {
     PUDDLE: { name: 'puddle', probability: 0.05 },
@@ -42,6 +43,11 @@ export function createDecoration(gridX, gridY, type) {
     };
     
     game.decorations.push(decoration);
+    
+    // Add blood for dead adventurers
+    if (type.name === 'dead_adventurer') {
+         createBloodStain(worldX, worldZ, 2.5); // Large pool for the large skeleton
+    }
 }
 
 // Spawn decorations throughout the dungeon
@@ -137,6 +143,24 @@ export function spawnDecorations() {
                             continue;
                         }
                         
+                        // Level 5 Special Rule: No mushrooms on island or bridges
+                        if (level === 5 && decorType.name === 'mushrooms') {
+                             const lakeCenterX = game.dungeon.width - 12;
+                             const lakeCenterY = 12;
+                             
+                             // 1. Check Island (Radius 4 safe zone)
+                             const dx = x - lakeCenterX;
+                             const dy = y - lakeCenterY;
+                             if (dx*dx + dy*dy < 16) continue;
+
+                             // 2. Check Bridges (approx 10 units long)
+                             // West Bridge (y is around 12)
+                             if (Math.abs(y - lakeCenterY) <= 2 && x < lakeCenterX && x > lakeCenterX - 11) continue;
+                             
+                             // South Bridge (x is around center)
+                             if (Math.abs(x - lakeCenterX) <= 2 && y > lakeCenterY && y < lakeCenterY + 11) continue;
+                        }
+
                         const prefersWall = wallPreferringTypes.includes(decorType.name);
                         
                         // Adjust probability based on wall proximity
@@ -233,12 +257,12 @@ export function updateDecorations() {
     }
 }
 
-export function spawnGlowWorms() {
+export function spawnFireflies() {
     const cellSize = game.dungeon.cellSize;
-    const numWorms = 5 + Math.floor(Math.random() * 5); // Reduced to 5-10
+    const numFireflies = 5 + Math.floor(Math.random() * 5); // Reduced to 5-10
     const level = game.dungeon.level || 1;
     
-    for (let i = 0; i < numWorms; i++) {
+    for (let i = 0; i < numFireflies; i++) {
         // Find random empty spot
         let x, y;
         let attempts = 0;
@@ -246,7 +270,7 @@ export function spawnGlowWorms() {
             x = Math.floor(Math.random() * game.dungeon.width);
             y = Math.floor(Math.random() * game.dungeon.height);
             
-            // Level 5 Special Rule: No glow worms in the lake area
+            // Level 5 Special Rule: No fireflies in the lake area
             if (level === 5) {
                 const lakeCenterX = game.dungeon.width - 12;
                 const lakeCenterY = 12;
@@ -263,15 +287,15 @@ export function spawnGlowWorms() {
         } while ((x === -1 || dungeonMap[y][x] !== 0) && attempts < 100);
         
         if (x !== -1 && dungeonMap[y][x] === 0) {
-            createGlowWorm(x, y);
+            createFirefly(x, y);
         }
     }
 }
 
-// Create a single glow worm
-export function createGlowWorm(gridX, gridY) {
+// Create a single firefly
+export function createFirefly(gridX, gridY) {
     const cellSize = game.dungeon.cellSize;
-    const wormGroup = new THREE.Group();
+    const fireflyGroup = new THREE.Group();
     
     const bodyColor = 0xccff00; // Yellow-green
     
@@ -281,7 +305,7 @@ export function createGlowWorm(gridX, gridY) {
         color: 0xffffff
     });
     const core = new THREE.Mesh(coreGeom, coreMat);
-    wormGroup.add(core);
+    fireflyGroup.add(core);
     
     // 2. Inner Halo (colored)
     const haloGeom = new THREE.SphereGeometry(0.05, 8, 8);
@@ -291,7 +315,7 @@ export function createGlowWorm(gridX, gridY) {
         opacity: 0.6
     });
     const halo = new THREE.Mesh(haloGeom, haloMat);
-    wormGroup.add(halo);
+    fireflyGroup.add(halo);
     
     // 3. Outer Halo (faint)
     const outerHaloGeom = new THREE.SphereGeometry(0.1, 8, 8);
@@ -301,7 +325,7 @@ export function createGlowWorm(gridX, gridY) {
         opacity: 0.2
     });
     const outerHalo = new THREE.Mesh(outerHaloGeom, outerHaloMat);
-    wormGroup.add(outerHalo);
+    fireflyGroup.add(outerHalo);
     
     // 4. Strong Light to illuminate surroundings
     // Increased intensity (2.5) and range (8.0)
@@ -310,20 +334,20 @@ export function createGlowWorm(gridX, gridY) {
     light.shadow.mapSize.width = 256;
     light.shadow.mapSize.height = 256;
     light.shadow.bias = -0.001;
-    wormGroup.add(light);
+    fireflyGroup.add(light);
     
-    wormGroup.position.x = gridX * cellSize + cellSize / 2;
-    wormGroup.position.z = gridY * cellSize + cellSize / 2;
-    wormGroup.position.y = 1.5 + Math.random(); // Flying height
+    fireflyGroup.position.x = gridX * cellSize + cellSize / 2;
+    fireflyGroup.position.z = gridY * cellSize + cellSize / 2;
+    fireflyGroup.position.y = 1.5 + Math.random(); // Flying height
     
-    game.scene.add(wormGroup);
+    game.scene.add(fireflyGroup);
     
-    const worm = {
-        mesh: wormGroup,
+    const firefly = {
+        mesh: fireflyGroup,
         gridX: gridX,
         gridY: gridY,
-        position: wormGroup.position.clone(),
-        targetPosition: wormGroup.position.clone(),
+        position: fireflyGroup.position.clone(),
+        targetPosition: fireflyGroup.position.clone(),
         facing: Math.floor(Math.random() * 4),
         animating: false,
         animationProgress: 0,
@@ -334,10 +358,10 @@ export function createGlowWorm(gridX, gridY) {
         flightOffset: Math.random() * 100 // Random offset for flight bobbing
     };
     
-    game.critters.push(worm);
+    game.critters.push(firefly);
 }
 
-// Update critters (glow worms)
+// Update critters (fireflies)
 export function updateCritters(deltaTime) {
     const playerPos = game.player.position;
     const cullDistSq = 25 * 25;
@@ -394,7 +418,7 @@ export function updateCritters(deltaTime) {
         
         critter.mesh.traverse(child => {
             if (child.isLight) {
-                const settings = game.lightSettings && game.lightSettings.glowWorm;
+                const settings = game.lightSettings && game.lightSettings.firefly;
                 const enabledInSettings = settings ? (settings.enabled !== false) : true;
                 child.visible = (distSq < cullDistSq) && enabledInSettings;
             }

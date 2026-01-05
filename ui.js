@@ -383,8 +383,8 @@ export function initSettings() {
     const torchBrightSlider = document.getElementById('torch-bright-slider');
     const torchRangeSlider = document.getElementById('torch-range-slider');
     
-    const wormBrightSlider = document.getElementById('worm-bright-slider');
-    const wormRangeSlider = document.getElementById('worm-range-slider');
+    const fireflyBrightSlider = document.getElementById('firefly-bright-slider');
+    const fireflyRangeSlider = document.getElementById('firefly-range-slider');
     
     const shroomBrightSlider = document.getElementById('shroom-bright-slider');
     const shroomRangeSlider = document.getElementById('shroom-range-slider');
@@ -403,8 +403,8 @@ export function initSettings() {
     const torchBrightVal = document.getElementById('torch-bright-val');
     const torchRangeVal = document.getElementById('torch-range-val');
     
-    const wormBrightVal = document.getElementById('worm-bright-val');
-    const wormRangeVal = document.getElementById('worm-range-val');
+    const fireflyBrightVal = document.getElementById('firefly-bright-val');
+    const fireflyRangeVal = document.getElementById('firefly-range-val');
     
     const shroomBrightVal = document.getElementById('shroom-bright-val');
     const shroomRangeVal = document.getElementById('shroom-range-val');
@@ -413,7 +413,7 @@ export function initSettings() {
     const mossRangeVal = document.getElementById('moss-range-val');
     
     const torchToggle = document.getElementById('torch-toggle');
-    const wormToggle = document.getElementById('worm-toggle');
+    const fireflyToggle = document.getElementById('firefly-toggle');
     const shroomToggle = document.getElementById('shroom-toggle');
     const mossToggle = document.getElementById('moss-toggle');
 
@@ -425,7 +425,7 @@ export function initSettings() {
     game.lightSettings = {
         ambient: { intensity: 0.0, enabled: true },
         playerTorch: { intensity: 2.0, distance: 18, enabled: true },
-        glowWorm: { intensity: 2.5, distance: 8.0, enabled: true },
+        firefly: { intensity: 2.5, distance: 8.0, enabled: true },
         mushrooms: { intensity: 1.5, distance: 10, enabled: true },
         moss: { intensity: 0.5, distance: 5.0, enabled: true }
     };
@@ -486,12 +486,12 @@ export function initSettings() {
         torchBrightVal.textContent = game.lightSettings.playerTorch.intensity;
         torchRangeVal.textContent = game.lightSettings.playerTorch.distance;
         
-        // Glow Worms
-        game.lightSettings.glowWorm.intensity = parseFloat(wormBrightSlider.value);
-        game.lightSettings.glowWorm.distance = parseFloat(wormRangeSlider.value);
-        game.lightSettings.glowWorm.enabled = wormToggle.checked;
-        wormBrightVal.textContent = game.lightSettings.glowWorm.intensity;
-        wormRangeVal.textContent = game.lightSettings.glowWorm.distance;
+        // Fireflies
+        game.lightSettings.firefly.intensity = parseFloat(fireflyBrightSlider.value);
+        game.lightSettings.firefly.distance = parseFloat(fireflyRangeSlider.value);
+        game.lightSettings.firefly.enabled = fireflyToggle.checked;
+        fireflyBrightVal.textContent = game.lightSettings.firefly.intensity;
+        fireflyRangeVal.textContent = game.lightSettings.firefly.distance;
         
         // Mushrooms
         game.lightSettings.mushrooms.intensity = parseFloat(shroomBrightSlider.value);
@@ -524,8 +524,8 @@ export function initSettings() {
     torchBrightSlider.addEventListener('input', updateLights);
     torchRangeSlider.addEventListener('input', updateLights);
     
-    wormBrightSlider.addEventListener('input', updateLights);
-    wormRangeSlider.addEventListener('input', updateLights);
+    fireflyBrightSlider.addEventListener('input', updateLights);
+    fireflyRangeSlider.addEventListener('input', updateLights);
     
     shroomBrightSlider.addEventListener('input', updateLights);
     shroomRangeSlider.addEventListener('input', updateLights);
@@ -534,7 +534,7 @@ export function initSettings() {
     mossRangeSlider.addEventListener('input', updateLights);
     
     torchToggle.addEventListener('change', updateLights);
-    wormToggle.addEventListener('change', updateLights);
+    fireflyToggle.addEventListener('change', updateLights);
     shroomToggle.addEventListener('change', updateLights);
     mossToggle.addEventListener('change', updateLights);
     
@@ -557,8 +557,8 @@ export function initSettings() {
     addReset(torchBrightSlider, 2.0, updateLights);
     addReset(torchRangeSlider, 18, updateLights);
     
-    addReset(wormBrightSlider, 2.5, updateLights);
-    addReset(wormRangeSlider, 8.0, updateLights);
+    addReset(fireflyBrightSlider, 2.5, updateLights);
+    addReset(fireflyRangeSlider, 8.0, updateLights);
     
     addReset(shroomBrightSlider, 1.5, updateLights);
     addReset(shroomRangeSlider, 10, updateLights);
@@ -581,8 +581,8 @@ export function initSettings() {
             torchBrightSlider.value = 2.0;
             torchRangeSlider.value = 18;
             
-            wormBrightSlider.value = 2.5;
-            wormRangeSlider.value = 8.0;
+            fireflyBrightSlider.value = 2.5;
+            fireflyRangeSlider.value = 8.0;
             
             shroomBrightSlider.value = 1.5;
             shroomRangeSlider.value = 10;
@@ -591,7 +591,7 @@ export function initSettings() {
             mossRangeSlider.value = 5.0;
             
             torchToggle.checked = true;
-            wormToggle.checked = true;
+            fireflyToggle.checked = true;
             shroomToggle.checked = true;
             mossToggle.checked = true;
             

@@ -3,7 +3,7 @@ import { logMessage, updateLevelName } from './ui.js';
 import { spawnSingleMonster, spawnMonsters, createMonster, MONSTER_TYPES } from './entities/monster.js';
 import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder } from './dungeon.js';
 import { spawnTreasures } from './entities/items.js';
-import { spawnDecorations, spawnGlowWorms, createDecoration, DECORATION_TYPES } from './entities/decoration.js';
+import { spawnDecorations, spawnFireflies, createDecoration, DECORATION_TYPES } from './entities/decoration.js';
 import { spawnWaterCreatures } from './entities/waterCreatures.js';
 import { LEVEL_CONFIG } from './levelConfig.js';
 
@@ -80,8 +80,8 @@ export function setupLevel() {
     // Spawn decorations (respects doors and existing decorations)
     spawnDecorations();
     
-    // Spawn glow worms
-    spawnGlowWorms();
+    // Spawn fireflies
+    spawnFireflies();
 
     // Spawn water creatures (fish, jellyfish)
     spawnWaterCreatures();
@@ -336,9 +336,9 @@ export function updateSceneLights() {
         }
     }
     
-    // 2. Glow Worms
+    // 2. Fireflies
     if (game.critters) {
-        const settings = game.lightSettings.glowWorm;
+        const settings = game.lightSettings.firefly;
         if (settings) {
             const isEnabled = settings.enabled !== false;
             const intensity = isEnabled ? settings.intensity : 0;
@@ -354,7 +354,7 @@ export function updateSceneLights() {
                             child.intensity = intensity;
                             child.distance = distance;
                         } else if (child.isMesh && child.material) {
-                            // Update glow for Basic materials (Worms)
+                            // Update glow for Basic materials (Fireflies)
                             // Store base color if not present
                             if (child.userData.baseColor === undefined) {
                                 child.userData.baseColor = child.material.color.clone();

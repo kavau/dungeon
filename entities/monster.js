@@ -465,7 +465,7 @@ export function tryMoveMonster(monster) {
     return false;
 }
 
-// Spawn glow worms
+// Spawn monsters
 export function spawnMonsters() {
     const cellSize = game.dungeon.cellSize;
     const numMonsters = 24;

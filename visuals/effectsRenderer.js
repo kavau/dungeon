@@ -18,9 +18,9 @@ export function createBloodStainVisuals(worldX, worldZ, sizeMultiplier, cellSize
     const colorVariation = Math.random();
     let bloodColor;
     if (colorVariation < 0.7) {
-        bloodColor = '#4a0a0a'; // Dark red
+        bloodColor = '#1a0202'; // Very dark red
     } else {
-        bloodColor = '#3a1010'; // Brownish dark red
+        bloodColor = '#150505'; // Very dark brownish red
     }
     
     // Create irregular blood stain shape (affected by size multiplier)
@@ -88,9 +88,9 @@ export function createBloodStainVisuals(worldX, worldZ, sizeMultiplier, cellSize
     const material = new THREE.MeshStandardMaterial({
         map: texture,
         transparent: true,
-        opacity: 0.7 + Math.random() * 0.2,
-        roughness: 0.2,
-        metalness: 0.1,
+        opacity: 0.8 + Math.random() * 0.1, // Increased opacity to cover floor
+        roughness: 1.0, // Fully matte
+        metalness: 0.0,
         depthWrite: false
     });
     
@@ -150,10 +150,12 @@ export function createBloodStainVisuals(worldX, worldZ, sizeMultiplier, cellSize
                 
                 const wallTexture = new THREE.CanvasTexture(wallCanvas);
                 const wallGeometry = new THREE.PlaneGeometry(0.5, 0.5);
-                const wallMaterial = new THREE.MeshBasicMaterial({
+                const wallMaterial = new THREE.MeshStandardMaterial({
                     map: wallTexture,
                     transparent: true,
-                    opacity: 0.6,
+                    opacity: 0.7,
+                    roughness: 1.0,
+                    metalness: 0.0,
                     depthWrite: false
                 });
                 

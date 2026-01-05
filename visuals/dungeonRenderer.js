@@ -258,7 +258,8 @@ export function createDungeonVisuals(dungeonMap, theme, cellSize) {
         roughness: 0.1,
         metalness: 0.8,
         emissive: 0x001133,
-        emissiveIntensity: 0.2
+        emissiveIntensity: 0.2,
+        depthWrite: false
     });
     
     // Create Seabed (to hide floor tiles and simulate depth)
@@ -298,7 +299,9 @@ export function createDungeonVisuals(dungeonMap, theme, cellSize) {
                     waterMesh.setMatrixAt(wIndex, dummy.matrix);
                     
                     // Seabed (just above floor to cover it)
-                    dummy.position.y = 0.02;
+                    // For natural caves (noTiles), the floor is displaced to -1.5 for water
+                    // So we place the seabed just above that to avoid z-fighting but keep it deep
+                    dummy.position.y = -1.45;
                     dummy.updateMatrix();
                     seabedMesh.setMatrixAt(wIndex, dummy.matrix);
                     
@@ -561,12 +564,12 @@ export function createStartingInscriptionVisuals(playerGridX, playerGridY, cellS
             ctx.textBaseline = 'middle';
             
             // Dark base layer (dried blood)
-            ctx.fillStyle = '#5a0a0a';
+            ctx.fillStyle = '#2a0505';
             ctx.globalAlpha = 0.8;
             ctx.fillText(line, size / 2, y + 2);
             
             // Bright blood layer with irregular strokes
-            ctx.fillStyle = '#c41010';
+            ctx.fillStyle = '#4a0a0a';
             for (let i = 0; i < 8; i++) {
                 ctx.globalAlpha = 0.2 + Math.random() * 0.3;
                 const offsetX = (Math.random() - 0.5) * 4;
@@ -580,7 +583,7 @@ export function createStartingInscriptionVisuals(playerGridX, playerGridY, cellS
             const x = Math.random() * size;
             const y = Math.random() * size;
             const radius = 2 + Math.random() * 8;
-            ctx.fillStyle = '#8a1010';
+            ctx.fillStyle = '#3a0808';
             ctx.globalAlpha = 0.3 + Math.random() * 0.4;
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -594,7 +597,7 @@ export function createStartingInscriptionVisuals(playerGridX, playerGridY, cellS
                 ctx.moveTo(x, y);
                 ctx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
                 ctx.lineWidth = 1 + Math.random() * 2;
-                ctx.strokeStyle = '#8a1010';
+                ctx.strokeStyle = '#3a0808';
                 ctx.globalAlpha = 0.2 + Math.random() * 0.3;
                 ctx.stroke();
             }
