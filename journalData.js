@@ -13,36 +13,31 @@ export const JOURNAL_ENTRIES = [
     {
         id: 2,
         title: "Day 2: The Sewers",
-        text: "The smell is unbearable—stagnant water and ancient filth. This level was once a drainage system for the city above. Green slime coats every surface, making footing treacherous. The skittering sounds are everywhere now. We were ambushed by goblins near the cisterns. Thorne took an arrow to the shoulder—he says he's fine, but the wound is blackening."
+        text: "The smell is unbearable — stagnant water and ancient filth. This level was once a drainage system for the city above. Green slime coats every surface, making footing treacherous. We were ambushed by... things. Wet, pale shapes that splashed in the dark. Thorne was bitten on the arm. He says he is fine, but the wound is weeping black ichor. The strange coin is getting hotter. Thorne keeps rubbing it against the wound. We found inscriptions on the walls — scratchings of madmen. 'IT HUNGERS'. I think they are talking about me."
     },
     {
         id: 5,
         title: "Day 3: The Golden Idols",
-        text: "We have descended into what looks like a temple. It feels wrong. Strange golden idols leer at us from the shadows, their eyes seeming to follow our movement. The architecture is majestic but alien. Elara says the magical energy here is suffocating. We found remains of another group today—picked clean. One held a map, but the ink had run into useless stains."
+        text: "We have descended into what looks like a temple. It feels wrong. Strange golden idols leer at us from the shadows, their eyes seeming to follow our movement. The architecture is majestic but alien. Elara says the magical energy here is suffocating. We found remains of another group today—picked clean. One held a map, but the ink had run into useless stains. The air here holds a surprise—fireflies. Tiny orbs of blue light. The others say they are silent, but I hear them. A high-pitched buzzing that forms words. 'Deeper,' they whisper. 'Bring it to us.' One landed on Alaric's hand and burned him. He doesn't understand. They only burn the unworthy."
     },
     {
         id: 3,
         title: "Day 4: Madness",
-        text: "Thorne is dead. The poison took him in the night. He screamed of 'eyes in the walls' before he passed. We had to leave his body in the temple. Elara is... different. She mutters to herself. We found a staircase leading deeper, into cool, dry air. A welcome change from the humidity above, but the silence is heavy."
+        text: "Thorne is dead. The black poison took him. He screamed of 'eyes in the walls' before he passed. We had to leave his body in the temple. I took the coin from his cooling hand. It hurts to hold, but the pain focuses my mind. Glowing mushrooms have appeared, pulsing in rhythm with my own heartbeat. Elara is staring at me. Does she know? Does she want it?"
     },
     {
         id: 6,
         title: "Day 5: The Catacombs",
-        text: "We are walking through a city of the dead. Thousands of niches line the walls, each holding dusty bones. It goes on forever. We triggered a trap—a wall of spikes that split the corridor. Alaric was on the far side. We shouted to him, but the grinding stone drowned us out. Then the lights went out on his side. We heard him scream, then silence."
+        text: "We are walking through a city of the dead. Thousands of niches line the walls, each holding dusty bones. It goes on forever. The ghosts are everywhere. They have Thorne's face. They have my face. We triggered a trap—or did I trigger it? Alaric was almost crushed. He looks at me with suspicion now. He wants the coin. I can see it in his eyes. Elara laughs at nothing. We are broken, but the coin is singing."
     },
     {
         id: 4,
         title: "Day 6: The Lair",
-        text: "We found it. The Wyrm. We peered into the great cavern from a crack in the rock wall. It matches the legends—scales of iridescent emerald, breath like sulfur. It sleeps atop a mountain of gold. But there is something else... strange eggs? Glowing sacs? We cannot fight it directly. Alaric has a plan to distract it while I steal what I can. It is suicide. We have no choice. The way back is sealed."
+        text: "We found the Wyrm. It sleeps on gold, but it is filth compared to what I hold. Alaric thinks we are here for the hoard. Fool. The coin pulls me toward the eggs. 'Mother,' it whispers. Alaric has a plan to distract it. I will let him try. I have my own plan."
     },
     {
         id: 7,
         title: "Day 7: Alone",
-        text: "The plan failed. Of course it failed. The Wyrm woke before I even touched a coin. Fire... so much fire. Elara didn't even run; she just stood there laughing as the flames took her. I scrambled into a vent shaft. I've been crawling for hours. I can hear it slithering in the rock behind me. My torch is flickering. I am so cold."
-    },
-    {
-        id: 8,
-        title: "Last Words",
-        text: "Leg broken. Can't move. Hiding in a small alcove behind a mimic that—thank the gods—is already dead. If you find this, don't look for the gold. Just run. The Wyrm isn't the true master here. The dungeon itself... it's alive. And it's feeding."
+        text: "They are dead. The fire took them. Alaric screamed my name—he saw me turn away. He saw me smile. I am crawling in the dark now. The coin is so bright so warm. It lights the way. I hear slithering behind me. It is coming to reclaim its own."
     }
 ];
