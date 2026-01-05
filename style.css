@@ -390,15 +390,17 @@ canvas {
 #settings-menu {
     position: fixed;
     bottom: 20px;
-    left: 20px;
-    background: rgba(0, 0, 0, 0.85);
+    right: 20px;
+    left: auto;
+    background: rgba(0, 0, 0, 0.9);
     border: 2px solid #666;
-    padding: 20px;
+    padding: 15px;
     color: #eee;
     z-index: 1000;
-    width: 300px;
+    width: 340px;
     border-radius: 10px;
     box-shadow: 0 0 20px rgba(0,0,0,0.8);
+    font-size: 12px;
 }
 
 #settings-menu h2 {
@@ -406,28 +408,117 @@ canvas {
     margin-top: 0;
     color: #ffaa00;
     border-bottom: 1px solid #444;
-    padding-bottom: 10px;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.settings-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.settings-header {
+    font-size: 12px;
+    margin: 8px 0 4px;
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+    padding-bottom: 2px;
 }
 
 .slider-container {
-    margin: 15px 0;
+    margin: 10px 0;
     display: flex;
     flex-direction: column;
 }
 
+.slider-container.compact {
+    margin: 0;
+    width: 48%;
+}
+
 .slider-container label {
-    margin-bottom: 5px;
+    margin-bottom: 2px;
     font-weight: bold;
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
 }
 
 .slider-container input {
     width: 100%;
     cursor: pointer;
+    height: 4px; /* Thinner slider track */
 }
 
 .slider-container span {
     text-align: right;
-    font-size: 12px;
+    font-size: 10px;
     color: #aaa;
-    margin-top: 2px;
+    margin-top: 0;
+}
+
+#manual-screen {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #888;
+    padding: 30px;
+    color: #eee;
+    z-index: 1000;
+    width: 600px;
+    max-width: 90%;
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.9);
+    font-family: 'Courier New', monospace;
+}
+
+#manual-screen h2 {
+    text-align: center;
+    margin-top: 0;
+    color: #ffaa00;
+    border-bottom: 1px solid #444;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    font-size: 28px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+#manual-screen h3 {
+    color: #44ff44;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 18px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+#manual-screen ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+#manual-screen li {
+    margin-bottom: 8px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+#manual-screen li strong {
+    color: #fff;
+    display: inline-block;
+    width: 180px;
+}
+
+#manual-screen .press-key {
+    text-align: center;
+    margin-top: 30px;
+    color: #888;
+    font-size: 14px;
+    animation: pulse 2s infinite;
 }

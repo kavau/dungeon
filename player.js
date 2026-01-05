@@ -380,11 +380,22 @@ export function updatePlayer(deltaTime) {
                         Math.sin(time * 5.3) * 0.05 + 
                         Math.sin(time * 11.7) * 0.02;
                         
-        game.player.light.intensity = game.player.torch.intensityBase + flicker * game.player.torch.intensityVar;
+        // Get settings
+        const settings = game.lightSettings ? game.lightSettings.playerTorch : { intensity: 2.0, distance: 18, enabled: true };
+        const fadeFactor = game.player.torch.fadeFactor !== undefined ? game.player.torch.fadeFactor : 1.0;
         
-        // Apply light scale from settings
-        const scale = game.lightScale || 1.0;
-        game.player.light.distance = (game.player.torch.rangeBase + flicker * game.player.torch.rangeVar) * scale;
+        if (settings.enabled === false) {
+            game.player.light.intensity = 0;
+            game.player.light.distance = 0;
+        } else {
+            // Apply settings with fade and flicker
+            game.player.light.intensity = (settings.intensity * fadeFactor) + (flicker * game.player.torch.intensityVar);
+            game.player.light.distance = (settings.distance * fadeFactor) + (flicker * game.player.torch.rangeVar);
+        }
+        
+        // Ensure non-negative
+        game.player.light.intensity = Math.max(0, game.player.light.intensity);
+        game.player.light.distance = Math.max(0, game.player.light.distance);
         
         // Slight position wobble to simulate holding it
         const wobbleX = Math.sin(time * 1.5) * 0.02;
@@ -399,4 +410,88 @@ export function updatePlayer(deltaTime) {
         );
     }
     // No else block needed as light is attached to camera
+}
+
+// Strafe left
+export function strafeLeft() {
+    if (!game.player.canMove || game.player.animating) return;
+    
+    const cellSize = game.dungeon.cellSize;
+    const newPosition = game.player.position.clone();
+    
+    // Calculate left direction based on facing
+    switch(game.player.facing) {
+        case 0: // North -> West
+            newPosition.x -= cellSize;
+            break;
+        case 1: // East -> North
+            newPosition.z -= cellSize;
+            break;
+        case 2: // South -> East
+            newPosition.x += cellSize;
+            break;
+        case 3: // West -> South
+            newPosition.z += cellSize;
+            break;
+    }
+    
+    // Check collision before moving
+    const collision = checkCollision(newPosition);
+    if (!collision) {
+        advanceTurn();
+        game.player.targetPosition.copy(newPosition);
+        game.player.startRotation = game.player.rotation.y;
+        game.player.targetRotation = game.player.rotation.y;
+        game.player.animating = true;
+        game.player.canMove = false;
+        game.player.animationProgress = 0;
+        logMessage("You strafe left.");
+    } else {
+        if (collision === 'wall') logMessage("You bump into a wall.", 'combat');
+        else if (collision === 'door') logMessage("The door is closed.", 'combat');
+        else if (collision === 'monster') logMessage("A monster blocks your way.", 'combat');
+        else if (collision === 'water') logMessage("The water is too deep to cross.", 'combat');
+    }
+}
+
+// Strafe right
+export function strafeRight() {
+    if (!game.player.canMove || game.player.animating) return;
+    
+    const cellSize = game.dungeon.cellSize;
+    const newPosition = game.player.position.clone();
+    
+    // Calculate right direction based on facing
+    switch(game.player.facing) {
+        case 0: // North -> East
+            newPosition.x += cellSize;
+            break;
+        case 1: // East -> South
+            newPosition.z += cellSize;
+            break;
+        case 2: // South -> West
+            newPosition.x -= cellSize;
+            break;
+        case 3: // West -> North
+            newPosition.z -= cellSize;
+            break;
+    }
+    
+    // Check collision before moving
+    const collision = checkCollision(newPosition);
+    if (!collision) {
+        advanceTurn();
+        game.player.targetPosition.copy(newPosition);
+        game.player.startRotation = game.player.rotation.y;
+        game.player.targetRotation = game.player.rotation.y;
+        game.player.animating = true;
+        game.player.canMove = false;
+        game.player.animationProgress = 0;
+        logMessage("You strafe right.");
+    } else {
+        if (collision === 'wall') logMessage("You bump into a wall.", 'combat');
+        else if (collision === 'door') logMessage("The door is closed.", 'combat');
+        else if (collision === 'monster') logMessage("A monster blocks your way.", 'combat');
+        else if (collision === 'water') logMessage("The water is too deep to cross.", 'combat');
+    }
 }

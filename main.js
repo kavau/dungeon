@@ -116,22 +116,27 @@ function animate() {
         updateMap();
 
         // Simulate eye adaptation
-        // If the environment is dark (torch low/off), increase exposure to see faint lights
-        // If the environment is bright (torch on), decrease exposure to normal
-        const torchIntensity = (game.player.light && game.player.light.visible) ? (game.player.torch.intensityBase || 0) : 0;
-        
-        // Target exposure: 1.0 when torch is bright (2.0), 3.0 when torch is out (0.0)
-        // Clamp torch intensity to 0-2 range for calculation
-        const clampedIntensity = Math.max(0, Math.min(2.0, torchIntensity));
-        const targetExposure = 3.0 - clampedIntensity;
-        
-        // Smoothly interpolate current exposure to target
-        const adaptationSpeed = 2.0; // Speed of eye adjustment
-        game.renderer.toneMappingExposure = THREE.MathUtils.lerp(
-            game.renderer.toneMappingExposure, 
-            targetExposure, 
-            deltaTime * adaptationSpeed
-        );
+        if (!game.exposureSettings || game.exposureSettings.auto) {
+            // If the environment is dark (torch low/off), increase exposure to see faint lights
+            // If the environment is bright (torch on), decrease exposure to normal
+            const torchIntensity = (game.player.light && game.player.light.visible) ? (game.player.torch.intensityBase || 0) : 0;
+            
+            // Target exposure: 1.0 when torch is bright (2.0), 3.0 when torch is out (0.0)
+            // Clamp torch intensity to 0-2 range for calculation
+            const clampedIntensity = Math.max(0, Math.min(2.0, torchIntensity));
+            const targetExposure = 3.0 - clampedIntensity;
+            
+            // Smoothly interpolate current exposure to target
+            const adaptationSpeed = 2.0; // Speed of eye adjustment
+            game.renderer.toneMappingExposure = THREE.MathUtils.lerp(
+                game.renderer.toneMappingExposure, 
+                targetExposure, 
+                deltaTime * adaptationSpeed
+            );
+        } else {
+            // Manual exposure
+            game.renderer.toneMappingExposure = game.exposureSettings.level;
+        }
     }
     
     game.renderer.render(game.scene, game.camera);

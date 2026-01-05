@@ -375,11 +375,65 @@ export function initSettings() {
     const contrastSlider = document.getElementById('contrast-slider');
     const distanceSlider = document.getElementById('distance-slider');
     
+    const exposureSlider = document.getElementById('exposure-slider');
+    const autoExposureToggle = document.getElementById('auto-exposure-toggle');
+    
+    const ambientSlider = document.getElementById('ambient-slider');
+    
+    const torchBrightSlider = document.getElementById('torch-bright-slider');
+    const torchRangeSlider = document.getElementById('torch-range-slider');
+    
+    const wormBrightSlider = document.getElementById('worm-bright-slider');
+    const wormRangeSlider = document.getElementById('worm-range-slider');
+    
+    const shroomBrightSlider = document.getElementById('shroom-bright-slider');
+    const shroomRangeSlider = document.getElementById('shroom-range-slider');
+    
+    const mossBrightSlider = document.getElementById('moss-bright-slider');
+    const mossRangeSlider = document.getElementById('moss-range-slider');
+    
     const brightnessVal = document.getElementById('brightness-val');
     const contrastVal = document.getElementById('contrast-val');
     const distanceVal = document.getElementById('distance-val');
+    const exposureVal = document.getElementById('exposure-val');
+    
+    const ambientVal = document.getElementById('ambient-val');
+    const ambientToggle = document.getElementById('ambient-toggle');
+    
+    const torchBrightVal = document.getElementById('torch-bright-val');
+    const torchRangeVal = document.getElementById('torch-range-val');
+    
+    const wormBrightVal = document.getElementById('worm-bright-val');
+    const wormRangeVal = document.getElementById('worm-range-val');
+    
+    const shroomBrightVal = document.getElementById('shroom-bright-val');
+    const shroomRangeVal = document.getElementById('shroom-range-val');
+    
+    const mossBrightVal = document.getElementById('moss-bright-val');
+    const mossRangeVal = document.getElementById('moss-range-val');
+    
+    const torchToggle = document.getElementById('torch-toggle');
+    const wormToggle = document.getElementById('worm-toggle');
+    const shroomToggle = document.getElementById('shroom-toggle');
+    const mossToggle = document.getElementById('moss-toggle');
+
+    const resetButton = document.getElementById('reset-settings');
     
     if (!menu) return;
+
+    // Initialize game settings object
+    game.lightSettings = {
+        ambient: { intensity: 0.0, enabled: true },
+        playerTorch: { intensity: 2.0, distance: 18, enabled: true },
+        glowWorm: { intensity: 2.5, distance: 8.0, enabled: true },
+        mushrooms: { intensity: 1.5, distance: 10, enabled: true },
+        moss: { intensity: 0.5, distance: 5.0, enabled: true }
+    };
+    
+    game.exposureSettings = {
+        auto: true,
+        level: 1.0
+    };
 
     const updateVisuals = () => {
         const b = brightnessSlider.value;
@@ -391,8 +445,11 @@ export function initSettings() {
         distanceVal.textContent = d;
         
         // Apply CSS filters for brightness/contrast
+        const appliedBrightness = b * 2.0;
+        const appliedContrast = c * 1.1;
+        
         if (game.renderer && game.renderer.domElement) {
-            game.renderer.domElement.style.filter = `brightness(${b}) contrast(${c})`;
+            game.renderer.domElement.style.filter = `brightness(${appliedBrightness}) contrast(${appliedContrast})`;
         }
         
         // Apply fog distance
@@ -400,16 +457,152 @@ export function initSettings() {
             game.scene.fog.far = parseFloat(d);
         }
         
-        // Update global light scale
-        game.lightScale = parseFloat(d) / 40.0;
+        // Update Exposure Settings
+        game.exposureSettings.auto = autoExposureToggle.checked;
+        game.exposureSettings.level = parseFloat(exposureSlider.value);
+        exposureVal.textContent = game.exposureSettings.level;
+        
+        // Visual feedback for disabled state
+        exposureSlider.disabled = game.exposureSettings.auto;
+        exposureSlider.parentElement.style.opacity = game.exposureSettings.auto ? '0.5' : '1.0';
+    };
+    
+    const updateLights = () => {
+        // Ambient
+        game.lightSettings.ambient.intensity = parseFloat(ambientSlider.value);
+        game.lightSettings.ambient.enabled = ambientToggle.checked;
+        
+        const effectiveAmbient = game.lightSettings.ambient.enabled ? game.lightSettings.ambient.intensity : 0;
+        
+        ambientVal.textContent = game.lightSettings.ambient.intensity;
+        if (game.ambientLight) {
+            game.ambientLight.intensity = effectiveAmbient;
+        }
+        
+        // Player Torch
+        game.lightSettings.playerTorch.intensity = parseFloat(torchBrightSlider.value);
+        game.lightSettings.playerTorch.distance = parseFloat(torchRangeSlider.value);
+        game.lightSettings.playerTorch.enabled = torchToggle.checked;
+        torchBrightVal.textContent = game.lightSettings.playerTorch.intensity;
+        torchRangeVal.textContent = game.lightSettings.playerTorch.distance;
+        
+        // Glow Worms
+        game.lightSettings.glowWorm.intensity = parseFloat(wormBrightSlider.value);
+        game.lightSettings.glowWorm.distance = parseFloat(wormRangeSlider.value);
+        game.lightSettings.glowWorm.enabled = wormToggle.checked;
+        wormBrightVal.textContent = game.lightSettings.glowWorm.intensity;
+        wormRangeVal.textContent = game.lightSettings.glowWorm.distance;
+        
+        // Mushrooms
+        game.lightSettings.mushrooms.intensity = parseFloat(shroomBrightSlider.value);
+        game.lightSettings.mushrooms.distance = parseFloat(shroomRangeSlider.value);
+        game.lightSettings.mushrooms.enabled = shroomToggle.checked;
+        shroomBrightVal.textContent = game.lightSettings.mushrooms.intensity;
+        shroomRangeVal.textContent = game.lightSettings.mushrooms.distance;
+        
+        // Moss
+        game.lightSettings.moss.intensity = parseFloat(mossBrightSlider.value);
+        game.lightSettings.moss.distance = parseFloat(mossRangeSlider.value);
+        game.lightSettings.moss.enabled = mossToggle.checked;
+        mossBrightVal.textContent = game.lightSettings.moss.intensity;
+        mossRangeVal.textContent = game.lightSettings.moss.distance;
+        
+        // Flag that lights need updating
+        game.needsLightUpdate = true;
     };
 
     brightnessSlider.addEventListener('input', updateVisuals);
     contrastSlider.addEventListener('input', updateVisuals);
     distanceSlider.addEventListener('input', updateVisuals);
     
+    exposureSlider.addEventListener('input', updateVisuals);
+    autoExposureToggle.addEventListener('change', updateVisuals);
+    
+    ambientSlider.addEventListener('input', updateLights);
+    ambientToggle.addEventListener('change', updateLights);
+    
+    torchBrightSlider.addEventListener('input', updateLights);
+    torchRangeSlider.addEventListener('input', updateLights);
+    
+    wormBrightSlider.addEventListener('input', updateLights);
+    wormRangeSlider.addEventListener('input', updateLights);
+    
+    shroomBrightSlider.addEventListener('input', updateLights);
+    shroomRangeSlider.addEventListener('input', updateLights);
+    
+    mossBrightSlider.addEventListener('input', updateLights);
+    mossRangeSlider.addEventListener('input', updateLights);
+    
+    torchToggle.addEventListener('change', updateLights);
+    wormToggle.addEventListener('change', updateLights);
+    shroomToggle.addEventListener('change', updateLights);
+    mossToggle.addEventListener('change', updateLights);
+    
+    // Double click to reset
+    const addReset = (slider, value, updateFn) => {
+        slider.addEventListener('dblclick', () => {
+            slider.value = value;
+            updateFn();
+        });
+    };
+
+    addReset(brightnessSlider, 1.0, updateVisuals);
+    addReset(contrastSlider, 1.0, updateVisuals);
+    addReset(distanceSlider, 40, updateVisuals);
+    
+    addReset(exposureSlider, 1.0, updateVisuals);
+    
+    addReset(ambientSlider, 0.0, updateLights);
+    
+    addReset(torchBrightSlider, 2.0, updateLights);
+    addReset(torchRangeSlider, 18, updateLights);
+    
+    addReset(wormBrightSlider, 2.5, updateLights);
+    addReset(wormRangeSlider, 8.0, updateLights);
+    
+    addReset(shroomBrightSlider, 1.5, updateLights);
+    addReset(shroomRangeSlider, 10, updateLights);
+    
+    addReset(mossBrightSlider, 0.5, updateLights);
+    addReset(mossRangeSlider, 5.0, updateLights);
+    
+    if (resetButton) {
+        resetButton.addEventListener('click', () => {
+            brightnessSlider.value = 1.0;
+            contrastSlider.value = 1.0;
+            distanceSlider.value = 40;
+            
+            exposureSlider.value = 1.0;
+            autoExposureToggle.checked = true;
+            
+            ambientSlider.value = 0.0;
+            ambientToggle.checked = true;
+            
+            torchBrightSlider.value = 2.0;
+            torchRangeSlider.value = 18;
+            
+            wormBrightSlider.value = 2.5;
+            wormRangeSlider.value = 8.0;
+            
+            shroomBrightSlider.value = 1.5;
+            shroomRangeSlider.value = 10;
+            
+            mossBrightSlider.value = 0.5;
+            mossRangeSlider.value = 5.0;
+            
+            torchToggle.checked = true;
+            wormToggle.checked = true;
+            shroomToggle.checked = true;
+            mossToggle.checked = true;
+            
+            updateVisuals();
+            updateLights();
+        });
+    }
+    
     // Apply initial settings
     updateVisuals();
+    updateLights();
 }
 
 export function toggleSettings() {
@@ -429,5 +622,23 @@ export function toggleSettings() {
         } else {
             menu.style.display = 'none';
         }
+    }
+}
+
+export function toggleManual() {
+    const manual = document.getElementById('manual-screen');
+    if (manual) {
+        if (manual.style.display === 'none') {
+            manual.style.display = 'block';
+        } else {
+            manual.style.display = 'none';
+        }
+    }
+}
+
+export function updateLevelName(name) {
+    const el = document.getElementById('current-level-name');
+    if (el) {
+        el.textContent = name;
     }
 }

@@ -3,6 +3,8 @@ import {
     movePlayerForward, 
     movePlayerBackward, 
     rotatePlayer, 
+    strafeLeft,
+    strafeRight,
     waitTurn, 
     playerAttack, 
     interact 
@@ -14,7 +16,8 @@ import {
     toggleMap,
     updateHealthDisplay,
     logMessage,
-    toggleSettings
+    toggleSettings,
+    toggleManual
 } from './ui.js';
 import { teleportToLevel } from './gameLoop.js';
 
@@ -108,6 +111,12 @@ export function setupControls() {
             return;
         }
 
+        // Toggle Manual
+        if (e.code === 'KeyH') {
+            toggleManual();
+            return;
+        }
+
         if (!game.player.canMove) return;
         
         // Cheat Mode Controls
@@ -167,11 +176,19 @@ export function setupControls() {
                 break;
             case 'ArrowLeft':
                 e.preventDefault();
-                rotatePlayer(-1);
+                if (e.shiftKey) {
+                    strafeLeft();
+                } else {
+                    rotatePlayer(-1);
+                }
                 break;
             case 'ArrowRight':
                 e.preventDefault();
-                rotatePlayer(1);
+                if (e.shiftKey) {
+                    strafeRight();
+                } else {
+                    rotatePlayer(1);
+                }
                 break;
             case 'Space':
                 e.preventDefault();

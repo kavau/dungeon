@@ -1,6 +1,7 @@
 import { game, dungeonMap } from '../state.js';
 
 const creatures = [];
+game.waterCreatures = creatures;
 
 export function clearWaterCreatures() {
     creatures.forEach(c => game.scene.remove(c.mesh));
@@ -133,6 +134,8 @@ function spawnJellyfish(gx, gy, cellSize) {
 export function updateWaterCreatures(deltaTime) {
     const cellSize = game.dungeon.cellSize;
     const time = Date.now() * 0.001;
+    const playerPos = game.player.position;
+    const cullDistSq = 25 * 25; // Cull lights beyond 25 units
 
     creatures.forEach(c => {
         if (c.type === 'fish') {

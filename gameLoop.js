@@ -1,5 +1,5 @@
 import { game, dungeonMap } from './state.js';
-import { logMessage } from './ui.js';
+import { logMessage, updateLevelName } from './ui.js';
 import { spawnSingleMonster, spawnMonsters, createMonster, MONSTER_TYPES } from './entities/monster.js';
 import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder } from './dungeon.js';
 import { spawnTreasures } from './entities/items.js';
@@ -13,6 +13,8 @@ export function setupLevel() {
     const level = game.dungeon.level || 1;
     const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
     
+    updateLevelName(config.title || `Level ${level}`);
+
     let px, py;
     let facing = 1; // Default East
     
@@ -224,9 +226,8 @@ export function advanceTurn() {
     game.player.torch.turnsActive++;
     const t = game.player.torch;
     
-    // Constants for full brightness
-    const MAX_INTENSITY = 2.0;
-    const MAX_RANGE = 18;
+    // Initialize fade factor if not present
+    if (t.fadeFactor === undefined) t.fadeFactor = 1.0;
     
     if (t.turnsActive > t.maxTurns) {
         // Calculate how far into the fade we are (0.0 to 1.0)
@@ -235,18 +236,14 @@ export function advanceTurn() {
         if (fadeProgress >= 1.0) {
             // Torch burned out completely
             if (game.player.light.visible) {
-                t.intensityBase = 0;
-                t.rangeBase = 0;
+                t.fadeFactor = 0.0;
                 game.player.light.visible = false;
                 logMessage('Your torch has burned out!', 'torch');
             }
         } else {
             // Gradual fading
-            // Intensity goes from MAX to 0
-            t.intensityBase = MAX_INTENSITY * (1.0 - fadeProgress);
-            
-            // Range goes from MAX to 5 (not 0, so you can still see a little bit until it dies)
-            t.rangeBase = 5 + (MAX_RANGE - 5) * (1.0 - fadeProgress);
+            // Factor goes from 1.0 to 0.0
+            t.fadeFactor = 1.0 - fadeProgress;
             
             // Color shifts from Orange (ffaa00) to Red (ff0000)
             const r = 1.0;
@@ -261,6 +258,8 @@ export function advanceTurn() {
                 logMessage('Your torch is flickering and fading...', 'torch');
             }
         }
+    } else {
+        t.fadeFactor = 1.0;
     }
 }
 
@@ -277,58 +276,101 @@ export function checkAndSpawnMonsters() {
     }
 }
 
-export function updateSceneLights() {
-    const scale = game.lightScale || 1.0;
-    
-    // Helper to update a light
-    const updateLight = (light) => {
-        if (light.userData.baseDistance === undefined) {
-            light.userData.baseDistance = light.distance;
-        }
-        light.distance = light.userData.baseDistance * scale;
-    };
 
-    // 1. Decorations (Mushrooms, etc)
+
+export function updateSceneLights() {
+    if (!game.lightSettings) return;
+    
+    // Only update if settings changed or if it's the first run (undefined)
+    if (game.needsLightUpdate === false) return;
+
+    // 1. Decorations (Mushrooms, Moss)
     if (game.decorations) {
         for (let d of game.decorations) {
-            if (d.mesh) {
-                // Check for direct light (mushrooms)
-                if (d.mesh.userData.light) {
-                    updateLight(d.mesh.userData.light);
+            if (d.mesh && d.mesh.userData.light) {
+                const light = d.mesh.userData.light;
+                
+                // Initialize base values if needed
+                if (light.userData.baseIntensity === undefined) light.userData.baseIntensity = light.intensity;
+                if (light.userData.baseDistance === undefined) light.userData.baseDistance = light.distance;
+                
+                // Apply settings based on type
+                let settings = null;
+                
+                // Check type name safely
+                const typeName = d.type ? d.type.name : (d.mesh.userData.decorationType || '');
+                
+                if (typeName === 'mushrooms') {
+                    settings = game.lightSettings.mushrooms;
+                } else if (typeName === 'moss_patch') {
+                    settings = game.lightSettings.moss;
                 }
-                // Check for children lights (if any)
-                d.mesh.traverse((child) => {
-                    if (child.isLight) {
-                        updateLight(child);
-                    }
-                });
+                
+                if (settings) {
+                    const isEnabled = settings.enabled !== false;
+                    const intensity = isEnabled ? settings.intensity : 0;
+                    const distance = isEnabled ? settings.distance : 0;
+
+                    light.intensity = intensity;
+                    light.distance = distance;
+                    
+                    // Update material glow (emissive intensity)
+                    // Default intensities: Mushrooms ~1.5, Moss ~0.5
+                    let defaultIntensity = 1.0;
+                    if (typeName === 'mushrooms') defaultIntensity = 1.5;
+                    else if (typeName === 'moss_patch') defaultIntensity = 0.5;
+                    
+                    const glowFactor = intensity / defaultIntensity;
+                    
+                    d.mesh.traverse((child) => {
+                        if (child.isMesh && child.material && child.material.emissive) {
+                            // Store base emissive intensity if not present
+                            if (child.userData.baseEmissiveIntensity === undefined) {
+                                child.userData.baseEmissiveIntensity = child.material.emissiveIntensity;
+                            }
+                            child.material.emissiveIntensity = child.userData.baseEmissiveIntensity * glowFactor;
+                        }
+                    });
+                }
             }
         }
     }
     
-    // 2. Monsters (Torches, Eyes)
-    if (game.monsters) {
-        for (let m of game.monsters) {
-            if (m.mesh) {
-                m.mesh.traverse((child) => {
-                    if (child.isLight) {
-                        updateLight(child);
-                    }
-                });
+    // 2. Glow Worms
+    if (game.critters) {
+        const settings = game.lightSettings.glowWorm;
+        if (settings) {
+            const isEnabled = settings.enabled !== false;
+            const intensity = isEnabled ? settings.intensity : 0;
+            const distance = isEnabled ? settings.distance : 0;
+
+            const defaultIntensity = 2.5;
+            const glowFactor = intensity / defaultIntensity;
+            
+            for (let critter of game.critters) {
+                if (critter.mesh) {
+                    critter.mesh.traverse((child) => {
+                        if (child.isLight) {
+                            child.intensity = intensity;
+                            child.distance = distance;
+                        } else if (child.isMesh && child.material) {
+                            // Update glow for Basic materials (Worms)
+                            // Store base color if not present
+                            if (child.userData.baseColor === undefined) {
+                                child.userData.baseColor = child.material.color.clone();
+                            }
+                            // Scale color brightness
+                            child.material.color.copy(child.userData.baseColor).multiplyScalar(Math.max(0, glowFactor));
+                        }
+                    });
+                }
             }
         }
     }
+
+    // 3. Monsters & Treasures (Keep default behavior or ignore)
+    // We don't have sliders for these, so we leave them alone.
     
-    // 3. Treasures (Dropped Torches)
-    if (game.treasures) {
-        for (let t of game.treasures) {
-            if (t.mesh) {
-                t.mesh.traverse((child) => {
-                    if (child.isLight) {
-                        updateLight(child);
-                    }
-                });
-            }
-        }
-    }
+    // Reset flag
+    game.needsLightUpdate = false;
 }

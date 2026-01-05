@@ -25,9 +25,19 @@ export function generateDungeon() {
     // Update Ambient Light
     if (game.ambientLight) {
         const ambientColor = theme.ambientLight !== undefined ? theme.ambientLight : 0x000000;
-        const ambientIntensity = theme.ambientIntensity !== undefined ? theme.ambientIntensity : 0.0;
         game.ambientLight.color.setHex(ambientColor);
-        game.ambientLight.intensity = ambientIntensity;
+        
+        // Use user setting if available, otherwise theme default
+        if (game.lightSettings && game.lightSettings.ambient !== undefined) {
+            if (typeof game.lightSettings.ambient === 'object') {
+                game.ambientLight.intensity = game.lightSettings.ambient.enabled ? game.lightSettings.ambient.intensity : 0;
+            } else {
+                game.ambientLight.intensity = game.lightSettings.ambient;
+            }
+        } else {
+            const ambientIntensity = theme.ambientIntensity !== undefined ? theme.ambientIntensity : 0.0;
+            game.ambientLight.intensity = ambientIntensity;
+        }
     }
 
     // Create visuals

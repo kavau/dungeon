@@ -183,8 +183,9 @@ export function spawnDecorations() {
 }
 export function updateDecorations() {
     const playerPos = game.player.position;
-    // Use fog distance for culling, or default to 30 if fog not set
-    const lightCullDistance = (game.scene && game.scene.fog) ? game.scene.fog.far : 30;
+    // Use fog distance for culling, but cap at 30 for performance
+    const fogDist = (game.scene && game.scene.fog) ? game.scene.fog.far : 30;
+    const lightCullDistance = Math.min(fogDist, 30);
 
     for (let decoration of game.decorations) {
         // Light Culling
@@ -338,6 +339,9 @@ export function createGlowWorm(gridX, gridY) {
 
 // Update critters (glow worms)
 export function updateCritters(deltaTime) {
+    const playerPos = game.player.position;
+    const cullDistSq = 25 * 25;
+
     for (let critter of game.critters) {
         // Calculate base position (where the worm "should" be)
         const basePosition = new THREE.Vector3();
@@ -383,6 +387,19 @@ export function updateCritters(deltaTime) {
         // Random rotation to look like it's looking around
         critter.mesh.rotation.y = (critter.facing * Math.PI / 2) + Math.sin(time * 0.5) * 0.5;
         
+        // Light Culling
+        const dx = critter.mesh.position.x - playerPos.x;
+        const dz = critter.mesh.position.z - playerPos.z;
+        const distSq = dx * dx + dz * dz;
+        
+        critter.mesh.traverse(child => {
+            if (child.isLight) {
+                const settings = game.lightSettings && game.lightSettings.glowWorm;
+                const enabledInSettings = settings ? (settings.enabled !== false) : true;
+                child.visible = (distSq < cullDistSq) && enabledInSettings;
+            }
+        });
+
         // AI decision making
         if (!critter.animating) {
             critter.timeSinceLastMove += deltaTime;
