@@ -390,32 +390,100 @@ export function updateJournalUI() {
     const contentDiv = document.getElementById('journal-content');
     if (!contentDiv) return;
     
-    // Sort collected pages by ID
-    const collectedIds = [...game.journal.collectedPages].sort((a, b) => a - b);
+    // Sort collected pages by Date/Title
+    let visibleEntries = [];
+    if (game.cheatMode) {
+        visibleEntries = [...JOURNAL_ENTRIES];
+    } else {
+        visibleEntries = JOURNAL_ENTRIES.filter(e => game.journal.collectedPages.includes(e.id));
+    }
     
-    if (collectedIds.length === 0) {
+    // Sort logic: "Day X" -> X, "Last Words" -> 9999
+    visibleEntries.sort((a, b) => {
+        const getDay = (title) => {
+            const match = title.match(/Day (-?\d+)/);
+            if (match) return parseInt(match[1]);
+            if (title.includes("Last Words")) return 9999;
+            return 0; 
+        };
+        return getDay(a.title) - getDay(b.title);
+    });
+    
+    if (visibleEntries.length === 0) {
         contentDiv.innerHTML = '<p style="text-align: center; font-style: italic; color: #888;">No pages found yet...</p>';
         return;
     }
     
     let html = '';
     
-    for (const id of collectedIds) {
-        const entry = JOURNAL_ENTRIES.find(e => e.id === id);
+    // If cheat mode, maybe show a small indicator?
+    if (game.cheatMode) {
+        html += '<p style="text-align: center; color: #a44; font-size: 12px; margin-bottom: 20px;">[CHEAT MODE: ALL PAGES REVEALED]</p>';
+    }
+    
+    for (const entry of visibleEntries) {
+        const id = entry.id; // Used for deterministic seeding
         if (entry) {
             let decor = '';
             
             // Deterministic random for visuals based on ID
             const seed = id * 123.45;
-            const hasWaterStain = (Math.sin(seed) > 0.5);
-            const hasBloodStain = entry.title.toLowerCase().includes('blood') || entry.title.toLowerCase().includes('death') || entry.title.toLowerCase().includes('madness');
             
+            // Paper Rotation
+            const rotation = (Math.sin(seed * 1.5) * 2).toFixed(1); // -2 to 2 deg
+            
+            // Paper Type
+            const types = ['scrap-light', 'scrap-dark', 'scrap-worn'];
+            const typeIndex = Math.floor(Math.abs(Math.sin(seed * 99)) * 3);
+            const paperClass = types[typeIndex % 3];
+            
+            // Generate ragged edge clip-path
+             // We want a polygon that is mostly a rectangle but has jittery edges
+             // Polygon points: 
+             // TL -> TR (jittering y)
+             // TR -> BR (jittering x)
+             // BR -> BL (jittering y)
+             // BL -> TL (jittering x)
+             
+            // Simplified: just a few points to make it look torn
+            const jitter = () => (Math.random() * 2 - 1).toFixed(1);
+            // We use seed randomness
+            const seededRandom = (s) => {
+                const x = Math.sin(s) * 10000;
+                return x - Math.floor(x);
+            };
+            
+            let clipPoints = [];
+            // Top edge (0% y)
+            for(let i=0; i<=100; i+=5) {
+                clipPoints.push(`${i}% ${0 + seededRandom(seed + i)*3}%`);
+            }
+            // Right edge (100% x)
+            for(let i=0; i<=100; i+=5) {
+                clipPoints.push(`${100 - seededRandom(seed + i + 200)*2}% ${i}%`);
+            }
+            // Bottom edge (100% y)
+            for(let i=100; i>=0; i-=5) {
+                clipPoints.push(`${i}% ${100 - seededRandom(seed + i + 400)*3}%`);
+            }
+            // Left edge (0% x)
+            for(let i=100; i>=0; i-=5) {
+                clipPoints.push(`${0 + seededRandom(seed + i + 600)*2}% ${i}%`);
+            }
+            
+            const clipPath = `polygon(${clipPoints.join(',')})`;
+
+            // Water Stains
+            const hasWaterStain = (seededRandom(seed) > 0.5);
             if (hasWaterStain) {
-                const left = 10 + Math.abs(Math.sin(seed * 2)) * 80;
-                const top = 10 + Math.abs(Math.cos(seed * 3)) * 80;
-                const size = 30 + Math.abs(Math.sin(seed * 4)) * 50;
+                const left = 10 + seededRandom(seed * 2) * 80;
+                const top = 10 + seededRandom(seed * 3) * 80;
+                const size = 30 + seededRandom(seed * 4) * 50;
                 decor += `<div class="water-stain" style="top: ${top}%; left: ${left}%; width: ${size}px; height: ${size}px;"></div>`;
             }
+            
+            // Blood Stains (Contextual)
+            const hasBloodStain = entry.title.toLowerCase().includes('blood') || entry.title.toLowerCase().includes('death') || entry.title.toLowerCase().includes('madness');
             
             if (hasBloodStain) {
                 const left = 80 + Math.sin(seed) * 10;
@@ -426,9 +494,27 @@ export function updateJournalUI() {
                      decor += `<div class="blood-splatter" style="top: ${top + Math.random()*40}%; left: ${left + Math.random()*30}%; width: ${3+Math.random()*4}px; height: ${3+Math.random()*4}px;"></div>`;
                 }
             }
+            
+            // Holes
+            const hasHole = seededRandom(seed + 50) > 0.7;
+            if (hasHole) {
+                 const left = 20 + seededRandom(seed * 5) * 60;
+                 const top = 20 + seededRandom(seed * 6) * 60;
+                 const size = 10 + seededRandom(seed * 7) * 15;
+                 decor += `<div class="paper-hole" style="top: ${top}%; left: ${left}%; width: ${size}px; height: ${size}px;"></div>`;
+            }
+            
+            // Burn Marks (Randomly on edges)
+            const hasBurn = seededRandom(seed + 80) > 0.8;
+            if (hasBurn) {
+                 const isTop = seededRandom(seed) > 0.5;
+                 const left = seededRandom(seed * 9) * 100;
+                 const top = isTop ? -5 : 95;
+                 decor += `<div class="burn-mark" style="top: ${top}%; left: ${left}%; width: 60px; height: 60px;"></div>`;
+            }
 
             html += `
-                <div class="journal-entry">
+                <div class="journal-scrap ${paperClass}" style="transform: rotate(${rotation}deg); clip-path: ${clipPath}; -webkit-clip-path: ${clipPath};">
                     ${decor}
                     <h3 class="journal-title">${entry.title}</h3>
                     <p class="journal-text">${entry.text}</p>

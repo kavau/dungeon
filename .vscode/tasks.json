@@ -67,6 +67,17 @@
 			],
 			"isBackground": false,
 			"group": "none"
+		},
+		{
+			"label": "append_scrap_css",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-c",
+				"\ncat >> style.css <<EOF\n\n/* Journal Scraps & Defects */\n.journal-scrap {\n    background: #fdf6e3;\n    padding: 30px;\n    margin: 40px auto;\n    position: relative;\n    box-shadow: 3px 3px 10px rgba(0,0,0,0.4);\n    width: 90%;\n    transition: transform 0.3s ease; \n    /* Default jagged edge fallback */\n    border: 1px solid #d4c5a0;\n}\n\n.journal-scrap:hover {\n    transform: scale(1.02) rotate(0deg) !important;\n    z-index: 10;\n}\n\n/* Different paper textures */\n.scrap-light {\n    background-color: #fcf6e0;\n    background-image: linear-gradient(30deg, #fcf6e0 0%, #f7f0d0 100%);\n}\n\n.scrap-dark {\n    background-color: #f0e6c0;\n    background-image: radial-gradient(#f0e6c0, #e0d6b0);\n    border-color: #b0a680;\n}\n\n.scrap-worn {\n    background-color: #f4ecd0;\n    border: none;\n}\n\n/* Holes in the paper */\n.paper-hole {\n    position: absolute;\n    background: rgba(0,0,0,0.7); /* See-through to background overlay? No, background is overlay. */\n    /* To make it look like a hole, we need to see the element behind it (#journal-book background) */\n    /* But simpler: dark brown/black to simulate hole into darkness/table */\n    background: #2e2618; \n    border-radius: 40% 60% 70% 30% / 50% 60% 40% 50%;\n    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);\n    pointer-events: none;\n    z-index: 5;\n}\n\n/* Burnt marks */\n.burn-mark {\n    position: absolute;\n    background: radial-gradient(circle, rgba(60,30,0,0.9) 0%, rgba(100,60,20,0.5) 60%, rgba(100,60,20,0) 100%);\n    border-radius: 50%;\n    mix-blend-mode: multiply;\n    pointer-events: none;\n    z-index: 4;\n    filter: blur(2px);\n}\n\n/* Torn edges via masking (if supported) or clip-path */\n/* We will generate clip-paths inline in JS for randomness, \n   but here are some helpers for inner shadows on clipped elements is hard.\n   So we settle for flat look or use specific images. \n   Let's stick to CSS gradients for texture.\n*/\n\n/* Text enhancements */\n.journal-scrap h3 {\n    font-family: 'Homemade Apple', cursive;\n    color: #4a3c31;\n    font-size: 28px;\n    border-bottom: 2px solid rgba(74, 60, 49, 0.3);\n    margin-top: 0;\n    margin-bottom: 15px;\n    text-shadow: 1px 1px 0 rgba(255,255,255,0.2);\n}\n\n.journal-scrap p {\n    font-family: 'Homemade Apple', cursive;\n    font-size: 18px;\n    line-height: 1.5;\n    color: #2e2618;\n}\n\n/* Hide original simple entry styles if present */\n#journal-content .journal-entry {\n    border: none;\n    padding: 0;\n    margin: 0;\n}\nEOF\n"
+			],
+			"isBackground": false,
+			"group": "none"
 		}
 	]
 }

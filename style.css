@@ -605,3 +605,90 @@ canvas {
     font-size: 18px;
 }
 
+
+/* Journal Scraps & Defects */
+.journal-scrap {
+    background: #fdf6e3;
+    padding: 30px;
+    margin: 40px auto;
+    position: relative;
+    box-shadow: 3px 3px 10px rgba(0,0,0,0.4);
+    width: 90%;
+    transition: transform 0.3s ease; 
+    /* Default jagged edge fallback */
+    border: 1px solid #d4c5a0;
+}
+
+.journal-scrap:hover {
+    transform: scale(1.02) rotate(0deg) !important;
+    z-index: 10;
+}
+
+/* Different paper textures */
+.scrap-light {
+    background-color: #fcf6e0;
+    background-image: linear-gradient(30deg, #fcf6e0 0%, #f7f0d0 100%);
+}
+
+.scrap-dark {
+    background-color: #f0e6c0;
+    background-image: radial-gradient(#f0e6c0, #e0d6b0);
+    border-color: #b0a680;
+}
+
+.scrap-worn {
+    background-color: #f4ecd0;
+    border: none;
+}
+
+/* Holes in the paper */
+.paper-hole {
+    position: absolute;
+    background: rgba(0,0,0,0.7); /* See-through to background overlay? No, background is overlay. */
+    /* To make it look like a hole, we need to see the element behind it (#journal-book background) */
+    /* But simpler: dark brown/black to simulate hole into darkness/table */
+    background: #2e2618; 
+    border-radius: 40% 60% 70% 30% / 50% 60% 40% 50%;
+    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.8);
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Burnt marks */
+.burn-mark {
+    position: absolute;
+    background: radial-gradient(circle, rgba(60,30,0,0.9) 0%, rgba(100,60,20,0.5) 60%, rgba(100,60,20,0) 100%);
+    border-radius: 50%;
+    mix-blend-mode: multiply;
+    pointer-events: none;
+    z-index: 4;
+    filter: blur(2px);
+}
+
+/* Torn edges via masking (if supported) or clip-path */
+/* We will generate clip-paths inline in JS for randomness. */
+
+/* Text enhancements */
+.journal-scrap h3 {
+    font-family: 'Homemade Apple', cursive;
+    color: #4a3c31;
+    font-size: 28px;
+    border-bottom: 2px solid rgba(74, 60, 49, 0.3);
+    margin-top: 0;
+    margin-bottom: 15px;
+    text-shadow: 1px 1px 0 rgba(255,255,255,0.2);
+}
+
+.journal-scrap p {
+    font-family: 'Homemade Apple', cursive;
+    font-size: 18px;
+    line-height: 1.5;
+    color: #2e2618;
+}
+
+/* Hide original simple entry styles if present */
+#journal-content .journal-entry {
+    border: none;
+    padding: 0;
+    margin: 0;
+}

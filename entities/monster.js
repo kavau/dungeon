@@ -294,7 +294,8 @@ export function updateMonsters(deltaTime) {
                     monster.mesh.position.y = 1.5 + Math.sin(time * 3) * 0.3;
                     break;
                 case MONSTER_TYPES.SALAMANDER:
-                    monster.mesh.position.y = 0.3 + Math.sin(time * 2) * 0.05;
+                    // Keep close to ground, slight breathing motion
+                    monster.mesh.position.y = 0.0 + Math.abs(Math.sin(time * 2)) * 0.02;
                     break;
                 case MONSTER_TYPES.CUBE:
                     monster.mesh.position.y = 0.75 + Math.sin(time) * 0.1;
@@ -313,7 +314,9 @@ export function updateMonsters(deltaTime) {
         }
         
         // Rotate body slowly (except for some types)
-        if (monster.type !== MONSTER_TYPES.PLANT && monster.type !== MONSTER_TYPES.RAT) {
+        if (monster.type !== MONSTER_TYPES.PLANT && 
+            monster.type !== MONSTER_TYPES.RAT && 
+            monster.type !== MONSTER_TYPES.SALAMANDER) {
             monster.body.rotation.y += deltaTime * 0.5;
         }
         

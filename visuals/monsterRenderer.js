@@ -559,23 +559,132 @@ export function createMonsterVisuals(type) {
         }
             
         case MONSTER_TYPES.SALAMANDER: {
-            // Cave salamander - long, orange/red
+            // Cave salamander - realistic
+            // Low to ground, curved body, tail, splayed legs
             body = new THREE.Group();
-            const salamanderBody = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.2, 0.15, 1.0, 8),
-                new THREE.MeshStandardMaterial({ color: 0xff6600, roughness: 0.7 })
-            );
-            salamanderBody.rotation.z = Math.PI / 2;
-            const salamanderHead = new THREE.Mesh(
+            
+            const skinColor = 0xff5500;
+            const spotColor = 0xffff00;
+            
+            const skinMat = new THREE.MeshStandardMaterial({ 
+                color: skinColor, 
+                roughness: 0.4, // Wet skin
+                metalness: 0.0
+            });
+            
+            // Main Torso (Ellipsoid)
+            const torso = new THREE.Mesh(
                 new THREE.SphereGeometry(0.2, 8, 8),
-                new THREE.MeshStandardMaterial({ color: 0xff4400, roughness: 0.7 })
+                skinMat
             );
-            salamanderHead.position.set(0.5, 0, 0);
-            body.add(salamanderBody);
-            body.add(salamanderHead);
-            monsterGroup.position.y = 0.3;
-            speed = 0.4;
-            moveChance = 0.7;
+            torso.scale.set(0.7, 0.5, 1.8);
+            torso.position.y = 0.12;
+            body.add(torso);
+            
+            // Head
+            const headGroup = new THREE.Group();
+            headGroup.position.set(0, 0.15, 0.35);
+            
+            const headGeom = new THREE.SphereGeometry(0.12, 8, 8);
+            headGeom.scale(1, 0.6, 1.3);
+            const head = new THREE.Mesh(headGeom, skinMat);
+            headGroup.add(head);
+            
+            // Eyes
+            const eyeGeom = new THREE.SphereGeometry(0.04, 4, 4);
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.0 });
+            
+            const leftEye = new THREE.Mesh(eyeGeom, eyeMat);
+            leftEye.position.set(-0.08, 0.08, 0.05);
+            headGroup.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeom, eyeMat);
+            rightEye.position.set(0.08, 0.08, 0.05);
+            headGroup.add(rightEye);
+            
+            body.add(headGroup);
+            
+            // Tail (Curved)
+            const tailGroup = new THREE.Group();
+            tailGroup.position.set(0, 0.12, -0.3);
+            
+            const tailSeg1 = new THREE.Mesh(
+                new THREE.ConeGeometry(0.1, 0.4, 8),
+                skinMat
+            );
+            tailSeg1.rotation.x = -Math.PI / 2;
+            tailSeg1.position.z = -0.15;
+            tailGroup.add(tailSeg1);
+            
+            const tailSeg2 = new THREE.Mesh(
+                new THREE.ConeGeometry(0.06, 0.4, 8),
+                skinMat
+            );
+            tailSeg2.rotation.x = -Math.PI / 2;
+            tailSeg2.rotation.y = 0.4; // Curve right
+            tailSeg2.position.set(0.1, 0, -0.5);
+            tailGroup.add(tailSeg2);
+            
+            body.add(tailGroup);
+            
+            // Legs
+            const createLeg = (x, z, flipX) => {
+                const legGroup = new THREE.Group();
+                legGroup.position.set(x, 0.12, z);
+                
+                // Upper leg
+                const thigh = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.03, 0.04, 0.2, 4), 
+                    skinMat
+                );
+                thigh.rotation.z = flipX ? -1.0 : 1.0;
+                thigh.position.set(flipX ? 0.08 : -0.08, 0.05, 0);
+                
+                // Lower leg / Foot
+                const foot = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.02, 0.03, 0.15, 4),
+                    skinMat
+                );
+                foot.position.set(flipX ? 0.15 : -0.15, -0.05, 0);
+                
+                legGroup.add(thigh);
+                legGroup.add(foot);
+                
+                // Random leg variance
+                legGroup.rotation.y = (Math.random() - 0.5) * 0.5;
+                
+                return legGroup;
+            };
+            
+            body.add(createLeg(-0.15, 0.2, false));  // Front Left
+            body.add(createLeg(0.15, 0.2, true));    // Front Right
+            body.add(createLeg(-0.15, -0.15, false)); // Back Left
+            body.add(createLeg(0.15, -0.15, true));  // Back Right
+            
+            // Spots (Emissive)
+            const spotMat = new THREE.MeshStandardMaterial({ 
+                color: spotColor, 
+                emissive: spotColor,
+                emissiveIntensity: 0.5
+            });
+            
+            const spotGeom = new THREE.SphereGeometry(0.03, 4, 4);
+            
+            const spot1 = new THREE.Mesh(spotGeom, spotMat);
+            spot1.position.set(0.05, 0.21, 0.1);
+            body.add(spot1);
+            
+            const spot2 = new THREE.Mesh(spotGeom, spotMat);
+            spot2.position.set(-0.04, 0.21, -0.1);
+            body.add(spot2);
+            
+            const spot3 = new THREE.Mesh(spotGeom, spotMat);
+            spot3.position.set(0, 0.2, -0.25);
+            body.add(spot3);
+
+            monsterGroup.position.y = 0; 
+            speed = 0.5;
+            moveChance = 0.8;
             break;
         }
             
