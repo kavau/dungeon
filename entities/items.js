@@ -3,12 +3,16 @@ import { logMessage, updateWealthDisplay } from '../ui.js';
 import { createTreasureVisuals } from '../visuals/itemRenderer.js';
 import { LEVEL_CONFIG } from '../levelConfig.js';
 
+import { collectJournalPage } from '../ui.js';
+import { JOURNAL_ENTRIES } from '../journalData.js';
+
 export const TREASURE_TYPES = {
     CHEST: { name: 'chest', value: 100, color: 0x8B4513 },
     GOLD_COIN: { name: 'coin', value: 10, color: 0xFFD700 },
     GEM: { name: 'gem', value: 50, color: 0x00FFFF },
     TRINKET: { name: 'trinket', value: 25, color: 0xFF69B4 },
-    TORCH: { name: 'torch', value: 0, color: 0xffaa00 }
+    TORCH: { name: 'torch', value: 0, color: 0xffaa00 },
+    JOURNAL_PAGE: { name: 'journal_page', value: 0, color: 0xffffee }
 };
 
 export function createTreasure(gridX, gridY, type) {
@@ -33,6 +37,8 @@ export function createTreasure(gridX, gridY, type) {
     };
     
     game.treasures.push(treasure);
+    
+    return treasure;
 }
 
 export { createTorch } from '../visuals/itemRenderer.js';
@@ -75,6 +81,8 @@ export function collectTreasure(treasure, index) {
         
         game.player.light.visible = true;
         logMessage(`You picked up a fresh torch! Your light is renewed.`, 'torch');
+    } else if (treasure.type.name === 'journal_page') {
+        collectJournalPage(treasure.pageId);
     } else {
         game.wealth += treasure.type.value;
         logMessage(`You picked up a ${treasure.type.name} worth ${treasure.type.value} gold!`, 'item');
@@ -102,10 +110,57 @@ export function collectTreasure(treasure, index) {
     
     updateWealthDisplay();
 }
+
+export function spawnJournalPages() {
+    const cellSize = game.dungeon.cellSize;
+    
+    JOURNAL_ENTRIES.forEach(entry => {
+        // Skip if already collected
+        if (game.journal.collectedPages.includes(entry.id)) return;
+        
+        // Spawn chance per level? Or just try to spawn all remaining?
+        // Let's spawn a max of 2 uncollected pages per level to spread them out
+        // But for testing spawn all uncollected.
+        // Or maybe random chance?
+        // Let's spawn them all for now so they can be found.
+        
+        let placed = false;
+        let attempts = 0;
+        while (!placed && attempts < 50) {
+            const x = Math.floor(Math.random() * game.dungeon.width);
+            const y = Math.floor(Math.random() * game.dungeon.height);
+            
+            // Check walkable
+            if (dungeonMap[y][x] === 0) {
+                 const worldX = x * cellSize + cellSize / 2;
+                 const worldZ = y * cellSize + cellSize / 2;
+                 const distToPlayer = Math.sqrt(
+                    Math.pow(worldX - game.player.position.x, 2) +
+                    Math.pow(worldZ - game.player.position.z, 2)
+                );
+
+                if (distToPlayer > cellSize * 5) { // Further away than normal items
+                    // Check if another treasure is already here
+                    const occupied = game.treasures.some(t => t.gridX === x && t.gridY === y);
+                    
+                    if (!occupied) {
+                        const treasure = createTreasure(x, y, TREASURE_TYPES.JOURNAL_PAGE);
+                        treasure.pageId = entry.id;
+                        placed = true;
+                    }
+                }
+            }
+            attempts++;
+        }
+    });
+}
+
 export function spawnTreasures() {
     const cellSize = game.dungeon.cellSize;
     const numTreasures = 15;
     let spawned = 0;
+    
+    spawnJournalPages();
     
     const types = Object.values(TREASURE_TYPES);
     
@@ -125,6 +180,10 @@ export function spawnTreasures() {
             
             // Don't spawn too close to player
             if (distToPlayer > cellSize * 3) {
+                // Check occupied
+                const occupied = game.treasures.some(t => t.gridX === x && t.gridY === y);
+                if (occupied) continue;
+
                 // Weighted random selection based on level
                 const rand = Math.random();
                 let treasureType;

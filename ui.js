@@ -6,6 +6,7 @@ import {
     get2DPosition 
 } from './utils.js';
 import { getMonsterName, MONSTER_TYPES } from './entities/monster.js';
+import { JOURNAL_ENTRIES } from './journalData.js';
 
 // Toggle Map View
 export function toggleMap() {
@@ -366,6 +367,110 @@ export function updateDebugArrows() {
         if (decoration.debugArrow) {
             decoration.debugArrow.visible = game.controls.shiftPressed;
         }
+    }
+}
+
+// Journal UI
+export function toggleJournal() {
+    const journalOverlay = document.getElementById('journal-overlay');
+    
+    if (journalOverlay.style.display === 'flex') {
+        journalOverlay.style.display = 'none';
+        game.player.canMove = true;
+        game.paused = false;
+    } else {
+        updateJournalUI();
+        journalOverlay.style.display = 'flex';
+        game.player.canMove = false;
+        game.paused = true;
+    }
+}
+
+export function updateJournalUI() {
+    const contentDiv = document.getElementById('journal-content');
+    if (!contentDiv) return;
+    
+    // Sort collected pages by ID
+    const collectedIds = [...game.journal.collectedPages].sort((a, b) => a - b);
+    
+    if (collectedIds.length === 0) {
+        contentDiv.innerHTML = '<p style="text-align: center; font-style: italic; color: #888;">No pages found yet...</p>';
+        return;
+    }
+    
+    let html = '';
+    
+    for (const id of collectedIds) {
+        const entry = JOURNAL_ENTRIES.find(e => e.id === id);
+        if (entry) {
+            let decor = '';
+            
+            // Deterministic random for visuals based on ID
+            const seed = id * 123.45;
+            const hasWaterStain = (Math.sin(seed) > 0.5);
+            const hasBloodStain = entry.title.toLowerCase().includes('blood') || entry.title.toLowerCase().includes('death') || entry.title.toLowerCase().includes('madness');
+            
+            if (hasWaterStain) {
+                const left = 10 + Math.abs(Math.sin(seed * 2)) * 80;
+                const top = 10 + Math.abs(Math.cos(seed * 3)) * 80;
+                const size = 30 + Math.abs(Math.sin(seed * 4)) * 50;
+                decor += `<div class="water-stain" style="top: ${top}%; left: ${left}%; width: ${size}px; height: ${size}px;"></div>`;
+            }
+            
+            if (hasBloodStain) {
+                const left = 80 + Math.sin(seed) * 10;
+                const top = 10 + Math.cos(seed) * 10;
+                decor += `<div class="blood-stain" style="top: ${top}%; left: ${left}%; width: 40px; height: 50px;"></div>`;
+                // Splatters
+                for(let i=0; i<3; i++) {
+                     decor += `<div class="blood-splatter" style="top: ${top + Math.random()*40}%; left: ${left + Math.random()*30}%; width: ${3+Math.random()*4}px; height: ${3+Math.random()*4}px;"></div>`;
+                }
+            }
+
+            html += `
+                <div class="journal-entry">
+                    ${decor}
+                    <h3 class="journal-title">${entry.title}</h3>
+                    <p class="journal-text">${entry.text}</p>
+                </div>
+            `;
+        }
+    }
+    
+    contentDiv.innerHTML = html;
+}
+
+export function collectJournalPage(id) {
+    if (!game.journal.collectedPages.includes(id)) {
+        game.journal.collectedPages.push(id);
+        logMessage("You found a journal page! Press 'J' to read.", "item");
+        
+        // Flash journal prompt
+        const prompt = document.createElement('div');
+        prompt.textContent = "New Journal Entry (Press J)";
+        prompt.style.position = 'fixed';
+        prompt.style.top = '20%';
+        prompt.style.left = '50%';
+        prompt.style.transform = 'translate(-50%, -50%)';
+        prompt.style.color = '#ffeda0';
+        prompt.style.fontSize = '24px';
+        prompt.style.fontWeight = 'bold';
+        prompt.style.textShadow = '0 0 10px #000';
+        prompt.style.pointerEvents = 'none';
+        prompt.style.zIndex = '1500';
+        prompt.style.opacity = '0';
+        prompt.style.transition = 'opacity 0.5s';
+        
+        document.body.appendChild(prompt);
+        
+        // Fade in
+        requestAnimationFrame(() => prompt.style.opacity = '1');
+        
+        // Fade out
+        setTimeout(() => {
+            prompt.style.opacity = '0';
+            setTimeout(() => document.body.removeChild(prompt), 500);
+        }, 3000);
     }
 }
 

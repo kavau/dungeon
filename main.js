@@ -103,7 +103,7 @@ function animate() {
     
     const deltaTime = game.clock.getDelta();
     
-    if (game.started) {
+    if (game.started && !game.paused) {
         updatePlayer(deltaTime);
         updateMonsters(deltaTime);
         updateCritters(deltaTime);

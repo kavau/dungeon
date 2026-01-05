@@ -1,6 +1,7 @@
 // Game state
 export const game = {
     started: false,
+    paused: false,
     won: false,
     showingLevelScreen: false,
     cheatMode: false,
@@ -48,6 +49,12 @@ export const game = {
     critters: [],
     treasures: [],
     decorations: [],
+    
+    // Journal State
+    journal: {
+        collectedPages: [] // Array of IDs
+    },
+
     wealth: 0,
     clock: new THREE.Clock(),
     raycaster: new THREE.Raycaster()

@@ -17,7 +17,8 @@ import {
     updateHealthDisplay,
     logMessage,
     toggleSettings,
-    toggleManual
+    toggleManual,
+    toggleJournal
 } from './ui.js';
 import { teleportToLevel } from './gameLoop.js';
 
@@ -115,6 +116,34 @@ export function setupControls() {
         if (e.code === 'KeyH') {
             toggleManual();
             return;
+        }
+
+        // Toggle Journal
+        if (e.code === 'KeyJ' || e.key === 'j' || e.key === 'J') {
+            toggleJournal();
+            return;
+        }
+        
+        // Escape closes UI
+        if (e.code === 'Escape') {
+             const journalOverlay = document.getElementById('journal-overlay');
+             if (journalOverlay && journalOverlay.style.display === 'flex') {
+                 toggleJournal();
+                 return;
+             }
+             
+             // Also close settings or manual if open?
+             const manualScreen = document.getElementById('manual-screen');
+             if (manualScreen && manualScreen.style.display === 'block') {
+                 toggleManual();
+                 return;
+             }
+             
+             const settingsMenu = document.getElementById('settings-menu');
+             if (settingsMenu && settingsMenu.style.display === 'block') {
+                 toggleSettings();
+                 return;
+             }
         }
 
         if (!game.player.canMove) return;

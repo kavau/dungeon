@@ -522,3 +522,86 @@ canvas {
     font-size: 14px;
     animation: pulse 2s infinite;
 }
+
+/* Journal Styles */
+@import url('https://fonts.googleapis.com/css2?family=Homemade+Apple&display=swap');
+
+#journal-book {
+    background: #fdf6e3; /* Fallback */
+    background: radial-gradient(#fffef0, #f0e6c0);
+    border: 1px solid #d4c5a0;
+    box-shadow: 
+        inset 0 0 30px rgba(0,0,0,0.1),
+        0 0 20px rgba(0,0,0,0.5),
+        5px 10px 15px rgba(0,0,0,0.3);
+    color: #432;
+    transform: rotate(-1deg);
+    position: relative;
+    font-family: 'Homemade Apple', cursive;
+}
+
+#journal-book::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    /* Simplified noise background to avoid bash issues */
+    background: linear-gradient(to right, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 5%, rgba(0,0,0,0) 95%, rgba(0,0,0,0.1) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Water stains */
+.water-stain {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(160, 180, 200, 0) 40%, rgba(160, 180, 200, 0.1) 50%, rgba(160, 180, 200, 0.05) 70%, rgba(160, 180, 200, 0) 100%);
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Blood stains */
+.blood-stain {
+    position: absolute;
+    background-color: rgba(139, 0, 0, 0.4);
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    filter: blur(2px);
+    pointer-events: none;
+    z-index: 2;
+    mix-blend-mode: multiply;
+}
+
+.blood-splatter {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: #800;
+    border-radius: 50%;
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.journal-entry {
+    position: relative;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-bottom: 2px dashed #dcb;
+}
+
+.journal-title {
+    font-family: 'Times New Roman', serif;
+    font-variant: small-caps;
+    border-bottom: 1px solid #a98;
+    padding-bottom: 5px;
+    display: inline-block;
+    color: #432; 
+    margin-top: 0; 
+    font-size: 24px;
+}
+
+.journal-text {
+    color: #210; 
+    line-height: 1.6; 
+    font-size: 18px;
+}
+

@@ -219,6 +219,47 @@ export function createTreasureVisuals(type) {
             droppedLight.position.set(-0.15, 0.3, 0);
             treasureGroup.add(droppedLight);
             break;
+
+        case 'journal_page':
+            // Parchment page
+            const pageGeom = new THREE.PlaneGeometry(0.5, 0.7);
+            
+            // Create parchment texture dynamically
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#fcf5e5';
+            ctx.fillRect(0, 0, 128, 128);
+            
+            // Text lines - "scribbles"
+            ctx.fillStyle = '#654321';
+            for(let i=10; i<120; i+=10) {
+                // Irregular lines
+                ctx.beginPath();
+                ctx.moveTo(10, i);
+                ctx.lineTo(110 + (Math.random()-0.5)*10, i);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+            
+            const pageTex = new THREE.CanvasTexture(canvas);
+            
+            const pageMat = new THREE.MeshStandardMaterial({ 
+                map: pageTex,
+                side: THREE.DoubleSide,
+                roughness: 0.9,
+                color: 0xffffff
+            });
+            
+            const pageMesh = new THREE.Mesh(pageGeom, pageMat);
+            
+            // Orient somewhat flat but tilted
+            pageMesh.rotation.x = -Math.PI / 2 + 0.2; 
+            treasureGroup.add(pageMesh);
+            break;
     }
     
     // Enable shadows for treasures
