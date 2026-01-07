@@ -78,6 +78,15 @@
 			],
 			"isBackground": false,
 			"group": "none"
+		},
+		{
+			"label": "append_madness_css",
+			"type": "shell",
+			"command": "bash",
+			"args": [
+				"-c",
+				"echo '\n.log-entry.madness {\n    color: #d88dff;\n    font-style: italic;\n    text-shadow: 0 0 5px #aa00ff;\n    font-family: \"Courier New\", monospace;\n}' >> style.css"
+			]
 		}
 	]
 }

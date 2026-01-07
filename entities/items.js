@@ -1,10 +1,9 @@
 import { game, dungeonMap } from '../state.js';
-import { logMessage, updateWealthDisplay } from '../ui.js';
 import { getFloorHeight } from '../visuals/dungeonRenderer.js';
 import { createTreasureVisuals } from '../visuals/itemRenderer.js';
 import { LEVEL_CONFIG } from '../levelConfig.js';
 
-import { collectJournalPage } from '../ui.js';
+import { collectJournalPage, logMessage, updateWealthDisplay, updateMadnessDisplay } from '../ui.js';
 import { JOURNAL_ENTRIES } from '../journalData.js';
 
 export const TREASURE_TYPES = {
@@ -95,6 +94,7 @@ export function collectTreasure(treasure, index) {
         collectJournalPage(treasure.pageId);
     } else if (treasure.type.name === 'amulet') {
         game.player.hasAmulet = true;
+        updateMadnessDisplay();
         logMessage(`You found a strange amulet. It pulses with a dark energy. (Press 'U' to use)`, 'item');
     } else {
         game.wealth += treasure.type.value;

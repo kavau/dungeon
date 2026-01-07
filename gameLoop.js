@@ -1,5 +1,6 @@
 import { game, dungeonMap } from './state.js';
-import { logMessage, updateLevelName, updateHealthDisplay } from './ui.js';
+import { logMessage, updateLevelName, updateHealthDisplay, updateMadnessDisplay } from './ui.js';
+import { updateAmuletEffects } from './player.js';
 import { spawnSingleMonster, spawnMonsters, createMonster, MONSTER_TYPES } from './entities/monster.js';
 import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder } from './dungeon.js';
 import { spawnTreasures, createTreasure, TREASURE_TYPES } from './entities/items.js';
@@ -228,19 +229,74 @@ export function checkCollision(position) {
 
 // Update player movement
 export function advanceTurn() {
-    // Amulet Regeneration
+    // Amulet Regeneration & Madness
     if (game.player.amuletActive) {
         if (game.player.health < game.player.maxHealth) {
             game.player.health = Math.min(game.player.maxHealth, game.player.health + 1);
             updateHealthDisplay();
-            // logMessage("The amulet warms your skin.", "magic"); // Optional spam
+            
+            // Madness ONLY increases when healing occurs
+            game.player.madness = (game.player.madness || 0) + 1;
+            updateMadnessDisplay();
+            updateAmuletEffects(); // Update fog intensity
+            
+            const m = game.player.madness;
+
+            // Threshold Effects
+            if (m === 20) {
+                logMessage("The amulet feels uncomfortably warm against your chest.", "madness");
+            } else if (m === 50) {
+                logMessage("You hear faint whispers echoing in your mind...", "madness");
+            } else if (m === 80) {
+                logMessage("THE WHISPERS ARE SCREAMING.", "madness");
+                const flash = document.getElementById('damage-flash');
+                if (flash) {
+                    flash.style.backgroundColor = 'rgba(100, 0, 200, 0.3)';
+                    flash.style.opacity = 1;
+                    setTimeout(() => flash.style.opacity = 0, 500);
+                }
+            } else if (m >= 100) {
+                handleMadnessSubmission();
+                return; // Stop processing turn
+            }
         }
-        // Step 2 doesn't mention Madness, but Game Design doc says "increases madness". 
-        // We'll leave madness implementation for the next step as requested "implement it in small steps".
-        // Or wait, the prompt said "2) ... and increases 'madness'".
-        // But the user prompt here was: "2) ... grants +1 HP regeneration per turn ... creates purple fog/vignette effect."
-        // It cut off madness I think.
-        // I will add a comment for where Madness goes.
+        
+        // Random Madness Flavor (Chance scales with madness)
+        // Occurs whenever amulet is active, regardless of healing
+        const m = game.player.madness || 0;
+        const whisperChance = (m > 20) ? (m / 400) : 0; // 5% at 20, 25% at 100
+        
+        if (Math.random() < whisperChance) {
+            const whispers = [
+                "The shadows are watching you...",
+                "You hear the singing of lost souls.",
+                "The walls are breathing.",
+                "Something slithers in the darkness.",
+                "Give in...",
+                "They are waiting for you.",
+                "Your light offends them.",
+                "The amulet needs to feed.",
+                "Look behind you...",
+                "It's too late."
+            ];
+            logMessage(whispers[Math.floor(Math.random() * whispers.length)], "madness");
+        }
+        
+        // Attraction (Spawns spectral enemies)
+        if (m > 30) {
+            const level = game.dungeon.level || 1;
+            // Higher chance in spiritual levels (3=Temple, 4=Catacombs, 5=Caves/Deep)
+            const isSpiritual = [3, 4, 5].includes(level);
+            
+            // Base chance: 0.5% at 30, up to 2.5% at 100
+            let attractionChance = (m - 30) / 3500; 
+            
+            if (isSpiritual) attractionChance *= 2; // Double chance in spiritual areas
+            
+            if (Math.random() < attractionChance) {
+                spawnSpectralEntity();
+            }
+        }
     }
 
     if (!game.player.torch) return;
@@ -395,4 +451,73 @@ export function updateSceneLights() {
     
     // Reset flag
     game.needsLightUpdate = false;
+}
+
+export function handleMadnessSubmission() {
+    logMessage("You lose control. The darkness consumes you.", "monster-die");
+    
+    // Fade to black
+    const intro = document.getElementById('intro-screen');
+    if (intro) {
+        intro.style.display = 'flex';
+        intro.style.backgroundColor = 'black'; // Ensure black
+        intro.innerHTML = '<h1>Consumed</h1><p>The amulet has claimed your mind.</p>';
+        
+        setTimeout(() => {
+            // Respawn at Level 5 start
+            game.player.amuletActive = false;
+            game.player.madness = 0;
+            
+            // Restore UI
+            intro.style.display = 'none';
+            // Restore Intro Content
+            intro.innerHTML = `<h1>Awakening</h1>
+            <p>You wake up in a cold, damp darkness. A throbbing pain pulses in your skull...</p>
+            <p class="press-key">Press any key to begin</p>`;
+            
+            // Teleport
+            teleportToLevel(5);
+            logMessage("You wake up... again.", "door");
+            
+            // Restore visual fog if needed (teleport usually handles setupLevel which resets fog based on theme)
+            // But we need to ensure amuletActive didn't leave purple fog
+            // teleportToLevel calls setupLevel which sets fog from config
+            
+        }, 3000);
+    }
+}
+
+function spawnSpectralEntity() {
+    const spectralTypes = [MONSTER_TYPES.GHOST, MONSTER_TYPES.WRAITH, MONSTER_TYPES.SHADOW];
+    const type = spectralTypes[Math.floor(Math.random() * spectralTypes.length)];
+    
+    // Attempt to spawn near player
+    const px = Math.floor(game.player.position.x / game.dungeon.cellSize);
+    const py = Math.floor(game.player.position.z / game.dungeon.cellSize);
+    
+    let spawned = false;
+    let attempts = 0;
+    
+    while (!spawned && attempts < 10) {
+        // Random spot 3-7 tiles away
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 3 + Math.random() * 4;
+        const tx = Math.floor(px + Math.cos(angle) * dist);
+        const ty = Math.floor(py + Math.sin(angle) * dist);
+        
+        if (tx >= 1 && tx < game.dungeon.width - 1 && ty >= 1 && ty < game.dungeon.height - 1) {
+            if (dungeonMap[ty][tx] === 0) { // Floor
+               // Check if occupied by monster
+               const occupied = game.monsters.some(m => Math.floor(m.position.x/game.dungeon.cellSize) === tx && Math.floor(m.position.z/game.dungeon.cellSize) === ty);
+               
+               if (!occupied) {
+                   createMonster(tx, ty, type);
+                   logMessage("The amulet beckons from the void...", "madness");
+                   logMessage(`A ${type} manifests nearby!`, "combat");
+                   spawned = true;
+               }
+            }
+        }
+        attempts++;
+    }
 }

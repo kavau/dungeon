@@ -505,6 +505,27 @@ export function strafeRight() {
     }
 }
 
+export function updateAmuletEffects() {
+    if (!game.scene.fog) return;
+    
+    if (game.player.amuletActive) {
+        game.scene.fog.color.setHex(0x220044); // Deep Purple
+        
+        // Scale with madness: 0 -> 50, 100 -> 15
+        const m = game.player.madness || 0;
+        const dist = 50 - (Math.min(100, m) / 100) * 35;
+        
+        game.scene.fog.far = dist;
+    } else {
+        const level = game.dungeon.level || 1;
+        const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+        if (config && config.theme) {
+            game.scene.fog.color.setHex(config.theme.fogColor);
+            game.scene.fog.far = config.theme.fogDist;
+        }
+    }
+}
+
 export function toggleAmulet() {
     if (!game.player.hasAmulet) {
         logMessage("You don't have the amulet.", "door");
@@ -513,31 +534,13 @@ export function toggleAmulet() {
     
     game.player.amuletActive = !game.player.amuletActive;
     
-    const level = game.dungeon.level || 1;
-    const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
-    
     if (game.player.amuletActive) {
         logMessage("You put on the strange amulet. The world shifts into madness.", "item");
-        
-        // Apply Purple Visuals
-        if (game.scene.fog) {
-            game.scene.fog.color.setHex(0x220044); // Deep Purple
-            // Reduced effect by increasing render distance
-            game.scene.fog.far = 50; 
-        }
-        
-        // Add a temporary DOM overlay for vignette if we wanted, 
-        // but for now let's stick to Fog.
-        
     } else {
         logMessage("You take off the strange amulet.", "item");
-        
-        // Restore Visuals
-        if (game.scene.fog) {
-            game.scene.fog.color.setHex(config.theme.fogColor);
-            game.scene.fog.far = config.theme.fogDist;
-        }
     }
+    
+    updateAmuletEffects();
     
     // Force a visual update if needed
     game.needsLightUpdate = true;

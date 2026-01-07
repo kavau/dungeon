@@ -2,6 +2,7 @@ import { game, dungeonMap } from './state.js';
 import { createDecoration, DECORATION_TYPES } from './entities/decoration.js';
 import { clearWaterCreatures } from './entities/waterCreatures.js';
 import { LEVEL_CONFIG } from './levelConfig.js';
+import { updateAmuletEffects } from './player.js';
 import { 
     createDungeonVisuals, 
     createDoorVisuals, 
@@ -19,8 +20,7 @@ export function generateDungeon() {
     // Update Fog
     if (game.scene.fog) {
         if (game.player.amuletActive) {
-            game.scene.fog.color.setHex(0x220044); // Deep Purple
-            game.scene.fog.far = 50;
+            updateAmuletEffects(); // Use dynamic calculation
         } else {
             game.scene.fog.color.setHex(theme.fogColor);
             game.scene.fog.far = theme.fogDist;

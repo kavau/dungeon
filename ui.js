@@ -835,3 +835,33 @@ export function updateLevelName(name) {
         el.textContent = name;
     }
 }
+
+// Update madness display
+export function updateMadnessDisplay() {
+    const madnessElement = document.getElementById('madness');
+    if (madnessElement) {
+        if (game.player.madness > 0 || game.player.hasAmulet) {
+             madnessElement.style.display = 'block';
+             const curMadness = game.player.madness || 0;
+             madnessElement.textContent = `Madness: ${curMadness}/100`;
+             
+             // Color shift from subtle to intense
+             const intensity = Math.min(100, curMadness) / 100;
+             // rgb(200, 100, 200) -> rgb(150, 0, 255)
+             const r = Math.floor(200 - 50 * intensity);
+             const g = Math.floor(100 - 100 * intensity);
+             const b = Math.floor(200 + 55 * intensity);
+             madnessElement.style.color = `rgb(${r}, ${g}, ${b})`;
+             
+             if (curMadness > 80) {
+                 madnessElement.style.fontWeight = 'bold';
+                 madnessElement.style.textShadow = '0 0 5px #f0f';
+             } else {
+                 madnessElement.style.fontWeight = 'normal';
+                 madnessElement.style.textShadow = 'none';
+             }
+        } else {
+             madnessElement.style.display = 'none';
+        }
+    }
+}

@@ -692,3 +692,10 @@ canvas {
     padding: 0;
     margin: 0;
 }
+
+.log-entry.madness {
+    color: #d88dff;
+    font-style: italic;
+    text-shadow: 0 0 5px #aa00ff;
+    font-family: "Courier New", monospace;
+}

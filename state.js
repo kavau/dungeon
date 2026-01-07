@@ -27,7 +27,8 @@ export const game = {
         maxHealth: 100,
         attackPower: 20,
         hasAmulet: false,
-        amuletActive: false
+        amuletActive: false,
+        madness: 0
     },
     controls: {
         moveForward: false,
