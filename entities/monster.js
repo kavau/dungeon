@@ -276,7 +276,21 @@ export function updateMonsters(deltaTime) {
             monster.mesh.position.x = currentX;
             monster.mesh.position.z = currentZ;
             
-            monster.mesh.position.y = floorH + Math.sin(easedT * Math.PI) * 0.2; 
+            let baseY = 0.75; // Default
+            switch(monster.type) {
+                case MONSTER_TYPES.JELLY: baseY = 0.1; break;
+                case MONSTER_TYPES.GHOST: baseY = 1.2; break;
+                case MONSTER_TYPES.SPIDER: baseY = 0.3; break;
+                case MONSTER_TYPES.RAT: baseY = 0.25; break;
+                case MONSTER_TYPES.PLANT: baseY = 0.0; break;
+                case MONSTER_TYPES.BAT: baseY = 1.5; break;
+                case MONSTER_TYPES.SALAMANDER: baseY = 0.0; break;
+                case MONSTER_TYPES.CUBE: baseY = 0.75; break;
+                case MONSTER_TYPES.WRAITH: baseY = 1.3; break;
+                case MONSTER_TYPES.MIMIC: baseY = 0.3; break;
+            }
+            
+            monster.mesh.position.y = floorH + baseY + Math.sin(easedT * Math.PI) * 0.2; 
 
         } else {
             // Type-specific idle animation
