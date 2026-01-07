@@ -4,6 +4,7 @@ import { createTorch } from './items.js';
 import { createBloodStain } from '../effects.js';
 import { MONSTER_TYPES } from './monsterTypes.js';
 import { createMonsterVisuals } from '../visuals/monsterRenderer.js';
+import { getFloorHeight } from '../visuals/dungeonRenderer.js';
 import { LEVEL_CONFIG } from '../levelConfig.js';
 
 export { MONSTER_TYPES };
@@ -109,6 +110,9 @@ export function createMonster(gridX, gridY, type) {
     // Set position
     monsterGroup.position.x = gridX * cellSize + cellSize / 2;
     monsterGroup.position.z = gridY * cellSize + cellSize / 2;
+    
+    // Adjust height for 3D floor
+    monsterGroup.position.y = getFloorHeight(monsterGroup.position.x, monsterGroup.position.z, dungeonMap);
     
     game.scene.add(monsterGroup);
 
@@ -261,55 +265,65 @@ export function updateMonsters(deltaTime) {
             // Smooth movement
             const t = monster.animationProgress;
             const easedT = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-            monster.mesh.position.lerpVectors(
-                monster.position,
-                monster.targetPosition,
-                easedT
-            );
             
-            // Bob up and down while moving
-            monster.mesh.position.y = 0.75 + Math.sin(easedT * Math.PI) * 0.2;
+            // LERP X/Z
+            const currentX = THREE.MathUtils.lerp(monster.position.x, monster.targetPosition.x, easedT);
+            const currentZ = THREE.MathUtils.lerp(monster.position.z, monster.targetPosition.z, easedT);
+            
+            // Determine Floor Height at current position
+            const floorH = getFloorHeight(currentX, currentZ, dungeonMap);
+            
+            monster.mesh.position.x = currentX;
+            monster.mesh.position.z = currentZ;
+            
+            monster.mesh.position.y = floorH + Math.sin(easedT * Math.PI) * 0.2; 
+
         } else {
             // Type-specific idle animation
             const time = Date.now() * 0.002 + monster.gridX;
+            // Recalculate floor height for idle in case it changed or for consistency
+             const floorH = getFloorHeight(monster.mesh.position.x, monster.mesh.position.z, dungeonMap);
+             
             switch(monster.type) {
                 case MONSTER_TYPES.JELLY:
-                    monster.mesh.position.y = 0.75 + Math.sin(time * 2) * 0.15;
+                    monster.mesh.position.y = floorH + 0.1 + Math.sin(time * 2) * 0.15; // Low + bob
                     monster.body.scale.y = 0.8 + Math.sin(time * 2) * 0.1;
                     break;
                 case MONSTER_TYPES.GHOST:
-                    monster.mesh.position.y = 1.2 + Math.sin(time) * 0.2;
+                    monster.mesh.position.y = floorH + 1.2 + Math.sin(time) * 0.2;
                     break;
                 case MONSTER_TYPES.SPIDER:
-                    monster.mesh.position.y = 0.3 + Math.sin(time * 3) * 0.05;
+                    monster.mesh.position.y = floorH + 0.3 + Math.sin(time * 3) * 0.05;
                     break;
                 case MONSTER_TYPES.RAT:
-                    monster.mesh.position.y = 0.25 + Math.sin(time * 4) * 0.05;
+                    monster.mesh.position.y = floorH + 0.25 + Math.sin(time * 4) * 0.05;
                     break;
                 case MONSTER_TYPES.PLANT:
                     // Plant sways
                     monster.body.rotation.z = Math.sin(time) * 0.1;
+                    monster.mesh.position.y = floorH; // Grounded
                     break;
                 case MONSTER_TYPES.BAT:
-                    monster.mesh.position.y = 1.5 + Math.sin(time * 3) * 0.3;
+                    monster.mesh.position.y = floorH + 1.5 + Math.sin(time * 3) * 0.3;
                     break;
                 case MONSTER_TYPES.SALAMANDER:
                     // Keep close to ground, slight breathing motion
-                    monster.mesh.position.y = 0.0 + Math.abs(Math.sin(time * 2)) * 0.02;
+                    monster.mesh.position.y = floorH + Math.abs(Math.sin(time * 2)) * 0.02; // Used to mean Y=0
                     break;
                 case MONSTER_TYPES.CUBE:
-                    monster.mesh.position.y = 0.75 + Math.sin(time) * 0.1;
+                    monster.mesh.position.y = floorH + 0.75 + Math.sin(time) * 0.1;
                     monster.body.rotation.y += 0.01;
                     break;
                 case MONSTER_TYPES.WRAITH:
-                    monster.mesh.position.y = 1.3 + Math.sin(time) * 0.25;
+                    monster.mesh.position.y = floorH + 1.3 + Math.sin(time) * 0.25;
                     break;
                 case MONSTER_TYPES.MIMIC:
                     // Mimic stays still unless close to player
-                    monster.mesh.position.y = 0.3;
+                    monster.mesh.position.y = floorH + 0.3;
                     break;
                 default:
-                    monster.mesh.position.y = 0.75 + Math.sin(time) * 0.1;
+                    // Standard humanoid (stand height approx 0.75 + floor)
+                    monster.mesh.position.y = floorH + 0.75 + Math.sin(time) * 0.1;
             }
         }
         
@@ -477,11 +491,19 @@ export function spawnMonsters() {
     const level = game.dungeon.level || 1;
     const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
     const allowedTypes = config.monsters;
+    // Track cells with doors to prevent spawning inside them
+    const doorCells = new Set();
+    game.doors.forEach(door => {
+        doorCells.add(`${door.gridX},${door.gridY}`);
+    });
     
     // Try to spawn monsters in random walkable spaces
     for (let attempt = 0; attempt < 100 && spawned < numMonsters; attempt++) {
         const x = Math.floor(Math.random() * game.dungeon.width);
         const y = Math.floor(Math.random() * game.dungeon.height);
+        
+        // Skip if there's a door
+        if (doorCells.has(`${x},${y}`)) continue;
         
         // Level 5 Special Rule: No monsters in the lake area
         if (level === 5) {
@@ -521,10 +543,19 @@ export function spawnSingleMonster() {
     const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
     const allowedTypes = config.monsters;
     
+    // Track cells with doors to prevent spawning inside them
+    const doorCells = new Set();
+    game.doors.forEach(door => {
+        doorCells.add(`${door.gridX},${door.gridY}`);
+    });
+
     // Try to spawn a monster in a random walkable space
     for (let attempt = 0; attempt < 100; attempt++) {
         const x = Math.floor(Math.random() * game.dungeon.width);
         const y = Math.floor(Math.random() * game.dungeon.height);
+        
+        // Skip if there's a door
+        if (doorCells.has(`${x},${y}`)) continue;
         
         // Level 5 Special Rule: No monsters in the lake area
         if (level === 5) {

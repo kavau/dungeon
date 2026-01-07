@@ -15,6 +15,9 @@ export function setupLevel() {
     
     updateLevelName(config.title || `Level ${level}`);
 
+    // Spawn doors FIRST. They occupy grid cells (mark as 4) and we must avoid them
+    spawnDoors();
+
     let px, py;
     let facing = 1; // Default East
     
@@ -64,15 +67,14 @@ export function setupLevel() {
     
     // Create special inscription on wall in front of player
     createStartingInscription(px, py, cellSize);
-    
-    // Spawn monsters
+
+    // [spawnDoors moved to top]
+
+    // Spawn monsters (should check for doors now)
     spawnMonsters();
     
     // Spawn treasures
     spawnTreasures();
-    
-    // Spawn doors first (they block all decorations)
-    spawnDoors();
     
     // Spawn ladder to next level (creates hole in ceiling, must be before decorations)
     spawnLadder();

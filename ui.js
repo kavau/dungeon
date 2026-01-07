@@ -61,6 +61,8 @@ function drawMap() {
                 ctx.fillStyle = '#444'; // Wall
             } else if (dungeonMap[y][x] === 2) {
                 ctx.fillStyle = '#0000aa'; // Water
+            } else if (dungeonMap[y][x] === 4) {
+                ctx.fillStyle = '#8B4513'; // Door (Brown)
             } else {
                 ctx.fillStyle = '#111'; // Floor
             }
@@ -615,7 +617,7 @@ export function initSettings() {
     // Initialize game settings object
     game.lightSettings = {
         ambient: { intensity: 0.0, enabled: true },
-        playerTorch: { intensity: 2.0, distance: 18, enabled: true },
+        playerTorch: { intensity: 3.0, distance: 24, enabled: true },
         firefly: { intensity: 2.5, distance: 8.0, enabled: true },
         mushrooms: { intensity: 1.5, distance: 10, enabled: true },
         moss: { intensity: 0.5, distance: 5.0, enabled: true }

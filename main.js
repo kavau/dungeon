@@ -45,7 +45,7 @@ function init() {
     game.ambientLight = ambientLight; 
     
     // Player light (torch effect)
-    const playerLight = new THREE.PointLight(0xffaa00, 2.0, 18);
+    const playerLight = new THREE.PointLight(0xffaa00, 3.0, 24);
     playerLight.position.set(0.3, -0.1, -0.2); 
     playerLight.castShadow = true;
     playerLight.shadow.bias = -0.0005;
@@ -57,9 +57,9 @@ function init() {
     
     // Torch flicker properties
     game.player.torch = {
-        intensityBase: 2.0,
+        intensityBase: 3.0,
         intensityVar: 0.3,
-        rangeBase: 18,
+        rangeBase: 24,
         rangeVar: 1.0,
         timeOffset: Math.random() * 100,
         turnsActive: 0,
@@ -109,7 +109,7 @@ function animate() {
         updateCritters(deltaTime);
         updateWaterCreatures(deltaTime);
         updateTreasures(deltaTime);
-        updateDecorations();
+        updateDecorations(deltaTime);
         updateSceneLights();
         updateFloatingLabels();
         updateDebugWindow();

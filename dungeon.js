@@ -67,6 +67,9 @@ export function createDoor(gridX, gridY, orientation) {
     const visuals = createDoorVisuals(gridX, gridY, orientation, cellSize);
     
     game.scene.add(visuals.mesh);
+
+    // Mark specific cell as Door (4) to prevent other spawns
+    dungeonMap[gridY][gridX] = 4;
     
     // Store door data
     const door = {

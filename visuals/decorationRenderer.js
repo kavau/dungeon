@@ -1,10 +1,110 @@
 import { game, dungeonMap } from '../state.js';
+import { getCeilingNoise, getFloorHeight } from './dungeonRenderer.js';
 
 export function createDecorationVisuals(type, gridX, gridY) {
     const cellSize = game.dungeon.cellSize;
     const decorationGroup = new THREE.Group();
     decorationGroup.userData.type = 'decoration';
     decorationGroup.userData.decorationType = type.name;
+    
+    let updateFn = null; // Animation update function
+
+    const createComplexSpike = (height, radius, material, pointUp = true) => {
+        // "Natural" Stalactite Generator
+        // Features: Vertical striations (flow), uneven taper, bumpy surface
+        
+        const radialSegments = 12 + Math.floor(Math.random() * 6); // 12-18 sides (more detail)
+        const heightSegments = 10 + Math.floor(Math.random() * 6); // 10-16 vertical segments
+        
+        let geometry = new THREE.ConeGeometry(radius, height, radialSegments, heightSegments, true);
+        geometry.translate(0, height / 2, 0); // Pivot at base
+
+        const posAttribute = geometry.attributes.position;
+        const vertex = new THREE.Vector3();
+        
+        // Noise parameters for this specific spike
+        const flowFreq = 3 + Math.floor(Math.random() * 4); // Major ridges
+        const flowOffset = Math.random() * Math.PI * 2;
+        const twistFactor = (Math.random() - 0.5) * 0.2; // Vertical twist (Reduced from 1.0)
+        const bulgeHeight = Math.random() * height;
+        const bulgeAmount = 1.0 + Math.random() * 0.5;
+        
+        // Group by height to smooth transitions if needed, but per-vertex is fine with sufficient segments
+        
+        for (let i = 0; i < posAttribute.count; i++) {
+            vertex.fromBufferAttribute(posAttribute, i);
+            
+            // Calculate relative coordinates
+            const currentHeight = vertex.y; // 0 to height
+            const relHeight = currentHeight / height; // 0.0 to 1.0
+            
+            // 1. NON-LINEAR TAPER (Natural curve, not straight cone)
+            // Stalactites are often thicker at top and taper sharply, or bulge.
+            // Let's modify the current radius based on height
+            const xzDist = Math.sqrt(vertex.x*vertex.x + vertex.z*vertex.z);
+            if (xzDist > 0.001) {
+                const currentAngle = Math.atan2(vertex.z, vertex.x);
+                
+                // Base Radius curve: Slightly concave (power) or bulge
+                // Original Cone is linear. We want to bulge it slightly or make it irregular.
+                let radiusScale = 1.0;
+                
+                // Bulge logic: Sine wave bulge at random height
+                // radiusScale += Math.sin(relHeight * Math.PI * (1 + Math.random())) * 0.3;
+                
+                 // 2. VERTICAL FLOW (Striations)
+                 // Multi-frequency sine waves around the circumference
+                 const flowNoise = Math.sin(currentAngle * flowFreq + flowOffset + (currentHeight * twistFactor)) 
+                                 + 0.5 * Math.sin(currentAngle * (flowFreq * 2.5) + flowOffset);
+                                 
+                 // Apply striations - deeper at top (older growth) or uniform?
+                 // Let's make ridges prominent.
+                 radiusScale += flowNoise * 0.2; // 20% variance due to flow
+                 
+                 // 3. HORIZONTAL NOISE (Lumps)
+                 const lumpNoise = Math.sin(currentHeight * 5 + Math.random() * 5);
+                 radiusScale += lumpNoise * 0.1;
+                 
+                 // 4. GRANULARITY (Surface Roughness)
+                 // High frequency noise
+                 radiusScale += (Math.random() - 0.5) * 0.1;
+
+                 // Apply Scale
+                 // Preserve 0 at tip (relHeight near 1, assuming pointUp logic... wait, ConeGeometry builds tip at max y or min y?)
+                 // ConeGeometry: Base at -height/2 (before translate), Tip at height/2.
+                 // After translate(0, height/2, 0): Base at 0, Tip at height.
+                 
+                 // Don't mess up the tip
+                 if (relHeight < 0.95) {
+                     vertex.x *= radiusScale;
+                     vertex.z *= radiusScale;
+                 }
+                 
+                 // 5. SPINE WARP (Slight curve to the whole spike)
+                 // Reduced warping substantially for simpler look
+                 const warpX = Math.sin(relHeight * 2) * (radius * 0.15); 
+                 const warpZ = Math.cos(relHeight * 1.5) * (radius * 0.15);
+                 
+                 vertex.x += warpX * relHeight; // Warp increases towards tip
+                 vertex.z += warpZ * relHeight;
+            }
+            
+            posAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z);
+        }
+        
+        geometry.computeVertexNormals();
+
+        const mesh = new THREE.Mesh(geometry, material);
+        
+        if (!pointUp) {
+            mesh.rotation.x = Math.PI;
+        }
+        
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        
+        return mesh;
+    };
     
     switch (type.name) {
         case 'puddle': {
@@ -33,7 +133,12 @@ export function createDecorationVisuals(type, gridX, gridY) {
             
             const mesh = new THREE.Mesh(geometry, material);
             mesh.rotation.x = -Math.PI / 2;
-            mesh.position.y = 0.02; // Slightly above floor
+            
+            const centerX = (gridX * cellSize) + (cellSize / 2);
+            const centerZ = (gridY * cellSize) + (cellSize / 2);
+            const floorH = getFloorHeight(centerX, centerZ, dungeonMap);
+            
+            mesh.position.y = floorH + 0.02; // Slightly above floor
             
             decorationGroup.add(mesh);
             break;
@@ -97,38 +202,228 @@ export function createDecorationVisuals(type, gridX, gridY) {
         }
         
         case 'stalactite': {
-            // Hanging from ceiling
-            const height = 0.5 + Math.random() * 1.5;
-            const radius = 0.1 + Math.random() * 0.2;
-            const geometry = new THREE.ConeGeometry(radius, height, 6);
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x555555,
-                roughness: 0.8
-            });
+            // Hanging from ceiling (often in groups, often near edges, often with matching stalagmite)
+            const numInstances = 1 + Math.floor(Math.random() * 3); // 1 to 3 per cell
             
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.y = 4 - height / 2; // Ceiling height is 4
-            mesh.rotation.x = Math.PI; // Point down
+            const dripSources = [];
+            const dropletGeom = new THREE.SphereGeometry(0.02, 4, 4);
+            const dropletMat = new THREE.MeshBasicMaterial({ color: 0xccddff, transparent: true, opacity: 0.6 });
+
+            for(let i=0; i<numInstances; i++) {
+                // Determine position (biased towards edges)
+                let offsetX = (Math.random() - 0.5) * cellSize * 0.8;
+                let offsetZ = (Math.random() - 0.5) * cellSize * 0.8;
+                
+                // 70% chance to push to edge if in middle
+                if (Math.random() < 0.7) {
+                    if (Math.abs(offsetX) < cellSize * 0.3 && Math.abs(offsetZ) < cellSize * 0.3) {
+                         // Push to random edge
+                         const dir = Math.random() < 0.5 ? 'x' : 'z';
+                         const sign = Math.random() < 0.5 ? 1 : -1;
+                         if (dir === 'x') offsetX = sign * (cellSize * 0.35 + Math.random() * 0.1);
+                         else offsetZ = sign * (cellSize * 0.35 + Math.random() * 0.1);
+                    }
+                }
+
+                // Calculate exact ceiling height at this position
+                // Global coordinates of the stalactite
+                const globalX = (gridX * cellSize) + (cellSize / 2) + offsetX;
+                const globalZ = (gridY * cellSize) + (cellSize / 2) + offsetZ;
+                
+                // Map dimensions in world units
+                const mapWidthWorld = game.dungeon.width * cellSize;
+                const mapHeightWorld = game.dungeon.height * cellSize;
+                
+                // Convert to Local Plane Coordinates (centered at 0,0)
+                // Ceiling mesh is at center of map.
+                const localX = globalX - (mapWidthWorld / 2);
+                const localY = globalZ - (mapHeightWorld / 2);
+                
+                // Get height from shared noise function
+                const ceilingHeight = getCeilingNoise(localX, localY);
+
+                // Create Stalactite (Complex)
+                const height = 0.8 + Math.random() * 1.5;
+                const radius = 0.05 + Math.random() * 0.1; // Thinner
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x666666, 
+                    roughness: 0.4, // Weaker roughness for wet look?
+                    metalness: 0.1,
+                    flatShading: false // Smooth for organic look
+                });
+                
+                const mesh = createComplexSpike(height, radius, material, false);
+                mesh.position.y = ceilingHeight; // Use exact height!
+                mesh.position.x = offsetX;
+                mesh.position.z = offsetZ;
+                decorationGroup.add(mesh);
+                
+                let floorY = 0; // Where the droplet lands
+
+                // Chance for matching Stalagmite (column effect)
+                // Need floor height for stalagmite base
+                const fHeight = getFloorHeight(globalX, globalZ, dungeonMap);
+                
+                if (Math.random() < 0.6) {
+                    const mateHeight = 0.5 + Math.random() * 1.2;
+                    const mateRadius = radius * (0.8 + Math.random() * 0.4);
+                    const mateMesh = createComplexSpike(mateHeight, mateRadius, material, true);
+                    mateMesh.position.set(offsetX, fHeight, offsetZ);
+                    decorationGroup.add(mateMesh);
+                    
+                    floorY = fHeight + mateHeight;
+                } else {
+                    floorY = fHeight;
+                }
+                
+                // --- DRIP SIMULATION SETUP ---
+                // Drip from tip of stalactite (ceilingHeight - height) to floorY
+                const tipY = ceilingHeight - height;
+                
+                // Only setup drip if there is a gap sufficient for water to fall
+                if (tipY > floorY + 0.05) {
+                    const params = {
+                        startRunningY: ceilingHeight, // Start at ceiling
+                        tipY: tipY,           // End of stalactite
+                        floorY: floorY,       // Impact point
+                        x: offsetX,
+                        z: offsetZ,
+                        mesh: new THREE.Mesh(dropletGeom, dropletMat),
+                        state: 'delay',       // Initial delay
+                        timer: Math.random() * 10,
+                        velocity: 0
+                    };
+                    
+                    params.mesh.visible = false;
+                    decorationGroup.add(params.mesh);
+                    dripSources.push(params);
+                }
+            }
             
-            decorationGroup.add(mesh);
+            // Define the update logic for this group
+            updateFn = (dt) => {
+                const gravity = 15.0; // Faster gravity for small scale feel
+                
+                for(let d of dripSources) {
+                    if (d.state === 'delay') {
+                        d.timer -= dt;
+                        if (d.timer <= 0) {
+                            d.state = 'running'; // Start running down the stalactite
+                            d.timer = 0;
+                            d.mesh.visible = true;
+                            d.mesh.position.set(d.x, d.startRunningY, d.z);
+                            d.mesh.scale.set(1, 1, 1);
+                        }
+                    } else if (d.state === 'running') {
+                        // Move down from ceiling to tip
+                        const speed = 0.5; // Slow run down rock
+                        d.mesh.position.y -= speed * dt;
+                        
+                        // Wiggle on surface
+                        // const wiggle = Math.sin(d.mesh.position.y * 10) * 0.02;
+                        // d.mesh.position.x = d.x + wiggle;
+                        
+                        if (d.mesh.position.y <= d.tipY) {
+                            d.mesh.position.y = d.tipY;
+                            d.state = 'hanging'; // Hang at tip briefly
+                            d.timer = 0.5 + Math.random() * 1.5; // Accumulate at tip
+                            d.mesh.scale.set(1.5, 1.5, 1.5); // Grow slightly
+                        }
+                    } else if (d.state === 'hanging') {
+                        d.timer -= dt;
+                        // Pulse size
+                        const pulse = 1.0 + Math.sin(Date.now() * 0.005) * 0.1;
+                        d.mesh.scale.set(pulse, pulse, pulse);
+                        
+                        if (d.timer <= 0) {
+                            d.state = 'falling';
+                            d.velocity = 0;
+                        }
+                    } else if (d.state === 'falling') {
+                        d.velocity += gravity * dt;
+                        d.mesh.position.y -= d.velocity * dt;
+                        d.mesh.scale.set(0.7, 1.5, 0.7); // Stretch
+                        
+                        if (d.mesh.position.y <= d.floorY) {
+                            d.mesh.position.y = d.floorY;
+                            d.state = 'splash';
+                            d.timer = 0.15;
+                            d.mesh.scale.set(2.0, 0.1, 2.0); // Flatten
+                        }
+                    } else if (d.state === 'splash') {
+                        d.timer -= dt;
+                        d.mesh.scale.x += dt * 10;
+                        d.mesh.scale.z += dt * 10;
+                        d.mesh.material.opacity = (d.timer / 0.15) * 0.6;
+                        
+                        if (d.timer <= 0) {
+                            d.state = 'delay';
+                            d.timer = 2.0 + Math.random() * 8.0; // Reset
+                            d.mesh.visible = false;
+                            d.mesh.material.opacity = 0.6; // Reset opacity
+                        }
+                    }
+                }
+            };
+            
             break;
         }
         
         case 'stalagmite': {
-            // Rising from floor
-            const height = 0.5 + Math.random() * 1.0;
-            const radius = 0.1 + Math.random() * 0.2;
-            const geometry = new THREE.ConeGeometry(radius, height, 6);
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x555555,
-                roughness: 0.8
-            });
+            // Rising from floor (often in groups, often near edges, often with matching stalactite)
+            const numInstances = 1 + Math.floor(Math.random() * 3); // 1 to 3 per cell
             
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.y = height / 2;
+            for(let i=0; i<numInstances; i++) {
+                // Determine position (biased towards edges)
+                let offsetX = (Math.random() - 0.5) * cellSize * 0.8;
+                let offsetZ = (Math.random() - 0.5) * cellSize * 0.8;
+                
+                 // 70% chance to push to edge
+                if (Math.random() < 0.7) {
+                    if (Math.abs(offsetX) < cellSize * 0.3 && Math.abs(offsetZ) < cellSize * 0.3) {
+                         const dir = Math.random() < 0.5 ? 'x' : 'z';
+                         const sign = Math.random() < 0.5 ? 1 : -1;
+                         if (dir === 'x') offsetX = sign * (cellSize * 0.35 + Math.random() * 0.1);
+                         else offsetZ = sign * (cellSize * 0.35 + Math.random() * 0.1);
+                    }
+                }
             
-            decorationGroup.add(mesh);
+                const height = 0.6 + Math.random() * 1.2;
+                const radius = 0.06 + Math.random() * 0.12; // Thinner: 0.06-0.18
+                const material = new THREE.MeshStandardMaterial({
+                    color: 0x666666,
+                    roughness: 0.9,
+                    flatShading: true
+                });
+                
+                // Get Floor Height
+                const gX = (gridX * cellSize) + (cellSize / 2) + offsetX;
+                const gZ = (gridY * cellSize) + (cellSize / 2) + offsetZ;
+                const fHeight = getFloorHeight(gX, gZ, dungeonMap);
+
+                const mesh = createComplexSpike(height, radius, material, true);
+                mesh.position.set(offsetX, fHeight, offsetZ);
+                decorationGroup.add(mesh);
+                
+                // Chance for matching Stalactite
+                if (Math.random() < 0.6) {
+                    const mateHeight = 0.5 + Math.random() * 1.5;
+                    const mateRadius = radius * (0.8 + Math.random() * 0.4);
+                    const mateMesh = createComplexSpike(mateHeight, mateRadius, material, false);
+
+                    // Recalculate ceiling height
+                    const mW = game.dungeon.width * cellSize;
+                    const mH = game.dungeon.height * cellSize;
+                    const lX = gX - (mW / 2);
+                    const lY = gZ - (mH / 2);
+                    const cHeight = getCeilingNoise(lX, lY);
+
+                    mateMesh.position.set(offsetX, cHeight, offsetZ); 
+                    decorationGroup.add(mateMesh);
+                }
+            }
             break;
+
         }
         
         case 'bone_pile': {
@@ -139,6 +434,10 @@ export function createDecorationVisuals(type, gridX, gridY) {
                 roughness: 0.6
             });
             
+            const centerX = (gridX * cellSize) + (cellSize / 2);
+            const centerZ = (gridY * cellSize) + (cellSize / 2);
+            const floorH = getFloorHeight(centerX, centerZ, dungeonMap);
+
             for (let i = 0; i < numBones; i++) {
                 const length = 0.3 + Math.random() * 0.3;
                 const geometry = new THREE.CylinderGeometry(0.03, 0.03, length, 4);
@@ -146,7 +445,7 @@ export function createDecorationVisuals(type, gridX, gridY) {
                 
                 bone.position.x = (Math.random() - 0.5) * 0.5;
                 bone.position.z = (Math.random() - 0.5) * 0.5;
-                bone.position.y = 0.05;
+                bone.position.y = floorH + 0.05;
                 
                 bone.rotation.x = Math.PI / 2;
                 bone.rotation.z = Math.random() * Math.PI;
@@ -158,7 +457,7 @@ export function createDecorationVisuals(type, gridX, gridY) {
             if (Math.random() < 0.3) {
                 const skullGeom = new THREE.SphereGeometry(0.1, 8, 8);
                 const skull = new THREE.Mesh(skullGeom, material);
-                skull.position.y = 0.1;
+                skull.position.y = floorH + 0.1;
                 decorationGroup.add(skull);
             }
             break;
@@ -167,11 +466,29 @@ export function createDecorationVisuals(type, gridX, gridY) {
         case 'mushrooms': {
             // Cluster of glowing mushrooms
             const numMushrooms = 3 + Math.floor(Math.random() * 7);
+
+            // Limited Palette (Cool Colors: Green, Cyan, Blue, Purple)
+            // Range: 0.28 (Green) to 0.70 (Purple)
+            // This prevents "disco" look (Reds/Yellows) while adding variety
+            const hue = 0.28 + Math.random() * 0.42; 
             
+            const saturation = 0.6 + Math.random() * 0.4; // 0.6 - 1.0
+            const lightness = 0.6 + Math.random() * 0.3;  // 0.6 - 0.9 (Pastel/Bright)
+            
+            const mushroomColor = new THREE.Color().setHSL(hue, saturation, lightness);
+            const emissiveColor = new THREE.Color().setHSL(hue, saturation, 0.5); // Richer color for emission
+
             // Add a central light for the cluster
             // Increased distance from 5 to 10 to illuminate further
-            const clusterLight = new THREE.PointLight(0x44ff44, 1.5, 10);
-            clusterLight.position.set(0, 0.5, 0);
+            // Light color matches the mushroom color
+            const clusterLight = new THREE.PointLight(mushroomColor, 1.5, 10);
+            
+            // Calculate center floor height for light
+            const centerX = (gridX * cellSize) + (cellSize / 2);
+            const centerZ = (gridY * cellSize) + (cellSize / 2);
+            const centerY = getFloorHeight(centerX, centerZ, dungeonMap);
+            clusterLight.position.set(0, centerY + 0.5, 0);
+            
             decorationGroup.add(clusterLight);
             
             // Store reference for culling
@@ -189,13 +506,18 @@ export function createDecorationVisuals(type, gridX, gridY) {
                 const offsetX = (Math.random() - 0.5) * 0.6;
                 const offsetZ = (Math.random() - 0.5) * 0.6;
                 
-                stem.position.set(offsetX, height / 2, offsetZ);
+                // Get Floor Height for this specific mushroom
+                const worldX = centerX + offsetX;
+                const worldZ = centerZ + offsetZ;
+                const floorH = getFloorHeight(worldX, worldZ, dungeonMap);
+                
+                stem.position.set(offsetX, floorH + height / 2, offsetZ);
                 
                 // Cap
                 const capGeom = new THREE.SphereGeometry(capRadius, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2);
                 const capMat = new THREE.MeshStandardMaterial({
-                    color: 0x44ff44,
-                    emissive: 0x228822,
+                    color: mushroomColor,
+                    emissive: emissiveColor,
                     emissiveIntensity: 0.8,
                     roughness: 0.3
                 });
@@ -265,10 +587,25 @@ export function createDecorationVisuals(type, gridX, gridY) {
                 mossGroup.position.y = Math.random() * 3.0 + 0.5;
             } else if (placement === 'ceiling') {
                 mossGroup.rotation.x = Math.PI / 2;
-                mossGroup.position.y = 3.95; 
+                
+                // Calculate ceiling height
+                const mW = game.dungeon.width * cellSize;
+                const mH = game.dungeon.height * cellSize;
+                const cX = (gridX * cellSize) + (cellSize / 2);
+                const cZ = (gridY * cellSize) + (cellSize / 2);
+                const lX = cX - (mW / 2);
+                const lY = cZ - (mH / 2);
+                const cHeight = getCeilingNoise(lX, lY);
+                
+                mossGroup.position.y = cHeight - 0.05; 
             } else {
                 mossGroup.rotation.x = -Math.PI / 2;
-                mossGroup.position.y = 0.02;
+                
+                const cX = (gridX * cellSize) + (cellSize / 2);
+                const cZ = (gridY * cellSize) + (cellSize / 2);
+                const fH = getFloorHeight(cX, cZ, dungeonMap);
+                
+                mossGroup.position.y = fH + 0.02;
             }
             
             decorationGroup.add(mossGroup);
@@ -672,6 +1009,12 @@ export function createDecorationVisuals(type, gridX, gridY) {
         case 'wyrm_carcass': {
             // Giant Wyrm Carcass - Freshly killed
             const wyrmGroup = new THREE.Group();
+
+            // Calculate floor height
+            const centerX = (gridX * cellSize) + (cellSize / 2);
+            const centerZ = (gridY * cellSize) + (cellSize / 2);
+            const floorH = getFloorHeight(centerX, centerZ, dungeonMap);
+            wyrmGroup.position.y = floorH;
             
             // Materials
             const scaleMat = new THREE.MeshStandardMaterial({ 
@@ -845,6 +1188,13 @@ export function createDecorationVisuals(type, gridX, gridY) {
         case 'dead_adventurer': {
             // Dead Adventurer - Skeleton with gear
             const bodyGroup = new THREE.Group();
+            
+            // Calculate floor height
+            const centerX = (gridX * cellSize) + (cellSize / 2);
+            const centerZ = (gridY * cellSize) + (cellSize / 2);
+            const floorH = getFloorHeight(centerX, centerZ, dungeonMap);
+            bodyGroup.position.y = floorH;
+
             const boneMat = new THREE.MeshStandardMaterial({ color: 0x887766 }); // Darker bone
             const armorMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.6, roughness: 0.7 }); // Darker, rusty armor
             
@@ -899,6 +1249,13 @@ export function createDecorationVisuals(type, gridX, gridY) {
         case 'ladder': {
             // Escape Ladder
             const ladderGroup = new THREE.Group();
+            
+            // Calculate floor height
+            const centerX = (gridX * cellSize) + (cellSize / 2);
+            const centerZ = (gridY * cellSize) + (cellSize / 2);
+            const floorH = getFloorHeight(centerX, centerZ, dungeonMap);
+            ladderGroup.position.y = floorH;
+
             const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 0.9 });
             
             // Side rails
@@ -956,7 +1313,8 @@ export function createDecorationVisuals(type, gridX, gridY) {
 
     return {
         mesh: decorationGroup,
-        debugArrow: decorationGroup.userData.debugArrow
+        debugArrow: decorationGroup.userData.debugArrow,
+        update: updateFn
     };
 }
 

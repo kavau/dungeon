@@ -1,8 +1,9 @@
-import { game } from './state.js';
+import { game, dungeonMap } from './state.js';
 import { checkCollision, advanceTurn, checkAndSpawnMonsters, nextLevel } from './gameLoop.js';
 import { logMessage, updateHealthDisplay } from './ui.js';
 import { monsterShouldBleed, getMonsterBloodSize, createBloodStain } from './effects.js';
 import { createTreasure, TREASURE_TYPES } from './entities/items.js';
+import { getFloorHeight } from './visuals/dungeonRenderer.js';
 
 export function interact() {
     // Prevent rapid interaction
@@ -365,6 +366,13 @@ export function updatePlayer(deltaTime) {
         game.player.rotation.y = startRotation + angleDiff * easedT;
     }
     
+    // Adjust player Y position to match floor height
+    const floorHeight = getFloorHeight(game.player.position.x, game.player.position.z, dungeonMap);
+    // Add small bobbing effect similar to monsters/items but subtler
+    // Or just strictly follow floor. User asked "follow the floor height".
+    // I will stick to strictly follow plus height.
+    game.player.position.y = floorHeight + game.player.height;
+
     // Update camera position and rotation
     game.camera.position.copy(game.player.position);
     game.camera.rotation.order = 'YXZ';

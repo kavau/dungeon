@@ -1,5 +1,6 @@
 import { game, dungeonMap } from '../state.js';
 import { logMessage, updateWealthDisplay } from '../ui.js';
+import { getFloorHeight } from '../visuals/dungeonRenderer.js';
 import { createTreasureVisuals } from '../visuals/itemRenderer.js';
 import { LEVEL_CONFIG } from '../levelConfig.js';
 
@@ -21,7 +22,14 @@ export function createTreasure(gridX, gridY, type) {
     const treasureGroup = createTreasureVisuals(type);
 
     treasureGroup.position.x = gridX * cellSize + cellSize / 2;
-    treasureGroup.position.y = 0.3;
+    
+    // Adjust y to match floor height
+    const worldX = gridX * cellSize + cellSize / 2;
+    const worldZ = gridY * cellSize + cellSize / 2;
+    const floorY = getFloorHeight(worldX, worldZ, dungeonMap);
+    const baseY = floorY + 0.3;
+    treasureGroup.position.y = baseY;
+
     treasureGroup.position.z = gridY * cellSize + cellSize / 2;
     
     game.scene.add(treasureGroup);
@@ -32,6 +40,7 @@ export function createTreasure(gridX, gridY, type) {
         mesh: treasureGroup,
         gridX: gridX,
         gridY: gridY,
+        baseY: baseY,
         collected: false,
         rotation: Math.random() * Math.PI * 2
     };
@@ -53,7 +62,7 @@ export function updateTreasures(deltaTime) {
         // Rotate and bob
         treasure.rotation += deltaTime * 2;
         treasure.mesh.rotation.y = treasure.rotation;
-        treasure.mesh.position.y = 0.3 + Math.sin(treasure.rotation * 2) * 0.1;
+        treasure.mesh.position.y = (treasure.baseY || 0.3) + Math.sin(treasure.rotation * 2) * 0.1;
         
         // Check if player is on the same grid square
         const playerGridX = Math.floor(game.player.position.x / game.dungeon.cellSize);
@@ -72,8 +81,8 @@ export function collectTreasure(treasure, index) {
     
     if (treasure.type.name === 'torch') {
         game.player.torch.turnsActive = 0; // Reset torch
-        game.player.torch.intensityBase = 2.0; // Reset intensity (was 1.0)
-        game.player.torch.rangeBase = 18; // Reset range (was 15)
+        game.player.torch.intensityBase = 3.0; // Reset intensity (was 1.0)
+        game.player.torch.rangeBase = 24; // Reset range (was 15)
         
         // Reset color
         game.player.torch.color.setHex(0xffaa00);

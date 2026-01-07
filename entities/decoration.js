@@ -39,7 +39,8 @@ export function createDecoration(gridX, gridY, type) {
         mesh: decorationGroup,
         gridX: gridX,
         gridY: gridY,
-        debugArrow: result.debugArrow
+        debugArrow: result.debugArrow,
+        update: result.update // Attach update animation function if provided
     };
     
     game.decorations.push(decoration);
@@ -207,7 +208,7 @@ export function spawnDecorations() {
     
     console.log(`Spawned ${game.decorations.length} decorations`);
 }
-export function updateDecorations() {
+export function updateDecorations(deltaTime = 0.016) {
     const playerPos = game.player.position;
     // Use fog distance for culling, but cap at 30 for performance
     const fogDist = (game.scene && game.scene.fog) ? game.scene.fog.far : 30;
@@ -226,6 +227,11 @@ export function updateDecorations() {
             } else {
                 decoration.mesh.userData.light.visible = false;
             }
+        }
+
+        // Run per-decoration update logic (e.g. dripping water)
+        if (decoration.update) {
+            decoration.update(deltaTime);
         }
 
         if (decoration.type.name === 'spider_web') {

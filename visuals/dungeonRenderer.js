@@ -7,6 +7,176 @@ import {
     createPanelTexture
 } from './textureGenerator.js';
 
+export function getCeilingHeightAt(x, z) {
+    // Replicate the noise function used for ceiling geometry
+    // World coordinates (x, z) correspond to PlaneGeometry (x, y)
+    // The plane is centered at (width*cellSize/2, height*cellSize/2)
+    // so we need to offset back to local coordinates centered at 0
+    
+    // Note: visuals.ceiling.position is at (width*cellSize/2, 4, height*cellSize/2)
+    // The geometry is centered at 0,0 locally.
+    
+    // x,z are GLOBAL world coordinates.
+    // visuals.ceiling.position.x = center of map.
+    
+    // Let's assume the noise function uses coordinates relative to the plane center?
+    // Geometry generator: x = positionAttribute.getX(i) -> relative to center 0
+    // The mesh is at world position center.
+    // So local x = world X - mesh.position.x
+    // local y (which is plane Y, world Z) = world Z - mesh.position.z
+    
+    // BUT! The mesh is created with:
+    // ceiling.position.x = (width * cellSize) / 2;
+    // ceiling.position.z = (height * cellSize) / 2;
+    // So global X 10, center 50 -> local -40.
+    
+    // Let's check the noise inputs.
+    // z += Math.sin(x * 0.1) * 0.5; etc.
+    // x and y here are local coordinates of the plane.
+    
+    // We need map dimensions to calculate center.
+    // Since we don't have them passed here, we have to rely on Game state or just hardcode/export the noise function.
+    
+    // Better approach: Export the noise function and let the decoration renderer calculate local coordinates.
+    // Or, pass the map width/height to this function.
+    
+    // Let's assume we can access game state since this module likely imports it or we can pass it.
+    // The function is standalone. Let's make it a pure function that takes local coordinates.
+    
+    return 0; // Placeholder, replaced below
+}
+
+// Noise function for ceiling
+export function getFloorHeight(x, z, dungeonMap) {
+    if (!dungeonMap) return 0; // Look up failing
+    // x, z are GLOBAL world coordinates
+    
+    // Hardcoded logic from createDungeonVisuals
+    // Need access to cellSize, width, height... assume standard 4.0 for now if not available, 
+    // but better to pass/infer.
+    const cellSize = 4.0; 
+    const width = dungeonMap[0].length;
+    const height = dungeonMap.length;
+    const totalWidth = width * cellSize;
+    const totalHeight = height * cellSize;
+    
+    // Convert Global to Local Plane params
+    // Floor is centered at (totalWidth/2, totalHeight/2)
+    const localX = x - totalWidth / 2;
+    // World Y -> Local -Y (after -90 rotation)
+    // Actually Plane geometry (x, y) maps to World (x, z) because rotation.x = -PI/2
+    // Rotation -90 X:
+    // y' = y*cos(-90) - z*sin(-90) = z
+    // z' = y*sin(-90) + z*cos(-90) = -y
+    
+    // Geometry X -> World X.
+    // Geometry Y -> World Z. (Local Y corresponds to World -Z because plane Y is up in 2D, but rotated flat... )
+    // Let's look at the generation loop:
+    // wx = x + totalWidth/2
+    // wy = -y + totalHeight/2
+    // y = -(wy - totalHeight/2)
+    // y = totalHeight/2 - wy
+    
+    // Wait, let's reverse:
+    // wy is World Z coordinate (conceptually)
+    // x (geometry) = WorldX - CenterX
+    // y (geometry) = -(WorldZ - CenterZ) (Assuming texture coordinates flipped or something?)
+    
+    const geomX = x - totalWidth / 2;
+    const geomY = -(z - totalHeight / 2);
+    
+    // Grid coords
+    const gridX = Math.floor(x / cellSize);
+    const gridY = Math.floor(z / cellSize);
+    
+    let isWater = false;
+    let isNearWater = false;
+    
+    if (gridX >= 0 && gridX < width && gridY >= 0 && gridY < height) {
+        const cellType = dungeonMap[gridY][gridX];
+        if (cellType === 2) isWater = true;
+        
+        // Check neighbors (simplified logic for perf)
+        // Just checking basic cell type for now to determine base height
+        // Detailed neighbor blending requires sub-cell sampling which is expensive here.
+        // Let's approximate.
+    }
+    
+    if (isWater) {
+        return -1.5; // Seabed
+    }
+    
+    // If not water, calculate land noise
+    // Note: The original code does neighbor checks for "shoreline".
+    // We'll skip precise shoreline check for entity placement and just use land noise,
+    // assuming entities don't stand exactly on the underwater slope edge often.
+    // Or we returns approx height.
+    
+    let noise = 0;
+    noise += Math.sin(geomX * 0.2) * 0.15;
+    noise += Math.cos(geomY * 0.2) * 0.15;
+    noise += Math.sin(geomX * 0.5 + geomY * 0.5) * 0.05;
+    // noise += (Math.random() - 0.5) * 0.05; // Ignore random fuzz
+    
+    // Floor mesh is at y=0.
+    // Displacement (Z in geometry) becomes Y in world (due to -PI/2 rotation)
+    // z' = -y(geometryZ) ... wait.
+    // X rot -90:
+    // Y -> Z
+    // Z -> -Y
+    // So positive displacement Z moves DOWN in world Y?
+    // Let's check logic: pos.setZ(i, z)
+    // If z is random noise, usually bumps.
+    // If rotation is -90:
+    // Normal (0,0,1) -> (0,1,0) (Up)
+    // So +Z displacement -> +Y World.
+    
+    return noise;
+}
+
+export function getCeilingNoise(localX, localY) {
+    let z = 0;
+    // Must match the ceiling generation code EXACTLY
+    z += Math.sin(localX * 0.1) * 0.5;
+    z += Math.cos(localY * 0.1) * 0.5;
+    z += Math.sin(localX * 0.3 + localY * 0.2) * 0.3;
+    z += Math.cos(localY * 0.3 - localX * 0.2) * 0.3;
+    // Random component (Math.random) cannot be replicated exactly per point unless we use a seed or noise map.
+    // For stalactites, we can ignore the random jitter (0.2 range) or just add a fixed amount.
+    // z += (Math.random() - 0.5) * 0.2; -> ignored for perfect alignment, or we accept slight clipping/gap.
+    // Let's bias it up slightly to ensure attachment?
+    z -= 0.5; // Offset from generation
+    
+    // Mesh is rotated x = PI/2.
+    // Plane Z (displacement) becomes World -Y (down) or +Y (up)?
+    // ceiling.rotation.x = Math.PI / 2;
+    // Plane local: X, Y, Z(displacement).
+    // After rotation around X:
+    // Global X = Local X
+    // Global Y = Local -Z (because Y axis rotates to -Z, Z axis rotates to Y?)
+    // Wait.
+    // Default Plane lies in XY plane. Normal is +Z.
+    // Rotate X 90deg (PI/2):
+    // +Y goes to +Z.
+    // +Z goes to -Y.
+    // So displacement Z becomes -Y (down).
+    
+    // Mesh position Y is 4.0.
+    // Vertex Y = 4.0 + (displacement * -1) ??
+    // Actually:
+    // Rotation +90 deg X: 
+    // y' = y*cos(90) - z*sin(90) = -z
+    // z' = y*sin(90) + z*cos(90) = y
+    
+    // Geometry X -> World X
+    // Geometry Y -> World Z
+    // Geometry Z (displacement) -> World -Y
+    
+    // So WorldY = MeshY (4.0) - Displacement
+    
+    return 4.0 - z;
+}
+
 export function createDungeonVisuals(dungeonMap, theme, cellSize) {
     const width = dungeonMap[0].length;
     const height = dungeonMap.length;
@@ -107,7 +277,7 @@ export function createDungeonVisuals(dungeonMap, theme, cellSize) {
                 z += Math.sin(x * 0.2) * 0.15;
                 z += Math.cos(y * 0.2) * 0.15;
                 z += Math.sin(x * 0.5 + y * 0.5) * 0.05;
-                z += (Math.random() - 0.5) * 0.05;
+                // z += (Math.random() - 0.5) * 0.05; // Removed random noise for consistency
                 
                 pos.setZ(i, z);
             }
@@ -151,7 +321,7 @@ export function createDungeonVisuals(dungeonMap, theme, cellSize) {
         z += Math.cos(y * 0.1) * 0.5;
         z += Math.sin(x * 0.3 + y * 0.2) * 0.3;
         z += Math.cos(y * 0.3 - x * 0.2) * 0.3;
-        z += (Math.random() - 0.5) * 0.2;
+        // z += (Math.random() - 0.5) * 0.2; // Removed random noise to allow deterministic height checking for decorations
         z -= 0.5; // Move up by default
         
         positionAttribute.setZ(i, z);

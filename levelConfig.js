@@ -295,7 +295,7 @@ export const LEVEL_CONFIG = {
             }
             
             // Place player on the bridge (West of the Wyrm)
-            let px = wx - 6;
+            let px = wx - 5;
             let py = wy;
             
             // Ensure player spot is valid
@@ -322,7 +322,7 @@ export const LEVEL_CONFIG = {
                  }
             }
             
-            return { x: px, y: py, facing: 0 }; // 0 is North (Facing the lake)
+            return { x: px, y: py, facing: 1 }; // 1 is East (Facing the Wyrm)
         }
     }
 };
