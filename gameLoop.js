@@ -181,7 +181,8 @@ export function checkCollision(position) {
                     
                     if (Math.abs(position.x - wallX) < (halfSize + playerRadius) &&
                         Math.abs(position.z - wallZ) < (halfSize + playerRadius)) {
-                        return cellType === 2 ? 'water' : 'wall';
+                        if (cellType === 2) return 'water';
+                        return 'wall';
                     }
                 }
             }

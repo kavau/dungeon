@@ -801,14 +801,8 @@ export function createDecorationVisuals(type, gridX, gridY) {
             wyrmGroup.add(skullGroup);
             
             // Battle Damage & Blood
-            // 1. Large pool of blood
-            const poolGeom = new THREE.CircleGeometry(2.5, 16);
-            const pool = new THREE.Mesh(poolGeom, bloodMat);
-            pool.rotation.x = -Math.PI / 2;
-            pool.position.y = 0.02;
-            pool.position.x = 0.5;
-            wyrmGroup.add(pool);
-            
+            // (Blood pool is now generated via effects.js to check for pools/walls)
+
             // 2. Arrows sticking out
             const arrowShaftGeom = new THREE.CylinderGeometry(0.01, 0.01, 0.6, 4);
             const arrowFeatherGeom = new THREE.BoxGeometry(0.05, 0.05, 0.01);

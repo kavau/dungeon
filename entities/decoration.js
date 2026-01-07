@@ -47,6 +47,8 @@ export function createDecoration(gridX, gridY, type) {
     // Add blood for dead adventurers
     if (type.name === 'dead_adventurer') {
          createBloodStain(worldX, worldZ, 2.5); // Large pool for the large skeleton
+    } else if (type.name === 'wyrm_carcass') {
+         createBloodStain(worldX, worldZ, 5.0); // Massive pool for the Wyrm (clamped by environment)
     }
 }
 

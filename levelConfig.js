@@ -191,7 +191,7 @@ export const LEVEL_CONFIG = {
     5: {
         name: 'caves',
         title: 'The Deep Caves',
-        description: 'The air is thick with moisture and the smell of ancient earth. Bioluminescent fungi provide the only light in this natural labyrinth.',
+        description: 'The air is thick with moisture. A massive underground lake dominates the cavern, dark waters reflecting the pale bioluminescence of fungi.',
         theme: {
             wallBase: { r: 50, g: 45, b: 40 }, // Natural rock
             floorBase: '#2a2520',
@@ -225,10 +225,10 @@ export const LEVEL_CONFIG = {
         },
         mapGeneration: (map, width, height) => {
             // Create a large underground lake in the North-East corner
-            const lakeCenterX = width - 12;
+            const lakeCenterX = width - 12; // Adjusted for better centering
             const lakeCenterY = 12;
-            const lakeRadius = 7.0;
-            const islandRadius = 2.0;
+            const lakeRadius = 9.0;
+            const islandRadius = 3.0;
 
             // 1. Create the Lake (Water = 2)
             for (let y = 1; y < height - 1; y++) {
@@ -258,15 +258,10 @@ export const LEVEL_CONFIG = {
             }
 
             // 3. Create Natural Bridges (Land = 0)
-            // Bridge to West
+            // Bridge to West (Safe approach)
             for (let x = lakeCenterX - Math.floor(lakeRadius) - 2; x < lakeCenterX; x++) {
                 if (x > 0 && x < width) map[lakeCenterY][x] = 0;
                 if (x > 0 && x < width && Math.random() > 0.5) map[lakeCenterY+1][x] = 0; // Widen randomly
-            }
-            // Bridge to South
-            for (let y = lakeCenterY; y < lakeCenterY + Math.floor(lakeRadius) + 2; y++) {
-                if (y > 0 && y < height) map[y][lakeCenterX] = 0;
-                if (y > 0 && y < height && Math.random() > 0.5) map[y][lakeCenterX+1] = 0; // Widen randomly
             }
         },
         setup: (game, dungeonMap, helpers) => {
@@ -299,9 +294,9 @@ export const LEVEL_CONFIG = {
                 }
             }
             
-            // Place player on the island (South of the Wyrm)
-            let px = wx;
-            let py = wy + 2;
+            // Place player on the bridge (West of the Wyrm)
+            let px = wx - 6;
+            let py = wy;
             
             // Ensure player spot is valid
             if (dungeonMap[py][px] !== 0) {

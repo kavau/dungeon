@@ -81,7 +81,43 @@ export function createBloodStainVisuals(worldX, worldZ, sizeMultiplier, cellSize
     texture.needsUpdate = true;
     
     // Create floor decal (size affected by multiplier)
-    const stainSize = (0.8 + Math.random() * 0.7) * sizeMultiplier;
+    let stainSize = (0.8 + Math.random() * 0.7) * sizeMultiplier;
+    
+    // [FIX] Prevent blood stains from protruding into Water or Walls
+    const currentGridX = Math.floor(worldX / cellSize);
+    const currentGridY = Math.floor(worldZ / cellSize);
+    
+    let hasDangerousNeighbor = false;
+    // Check neighbors
+    const checkNeighbor = (dx, dy) => {
+        const nx = currentGridX + dx;
+        const ny = currentGridY + dy;
+        if (nx >= 0 && nx < gridWidth && ny >= 0 && ny < gridHeight) {
+            const type = grid[ny][nx];
+            // 1=Wall, 2=Water
+            if (type === 1 || type === 2) return true;
+        }
+        return false;
+    };
+    
+    if (checkNeighbor(0, -1) || checkNeighbor(0, 1) || checkNeighbor(-1, 0) || checkNeighbor(1, 0)) {
+        hasDangerousNeighbor = true;
+    }
+    
+    // If near edge, clamp size to fit within the tile better
+    if (hasDangerousNeighbor) {
+        stainSize = Math.min(stainSize, cellSize * 0.65);
+        
+        // Also center it on the tile to ensure it doesn't drift into edge
+        // Calculate center of tile
+        const tileCenterX = (currentGridX + 0.5) * cellSize;
+        const tileCenterZ = (currentGridY + 0.5) * cellSize;
+        
+        // LERP world pos towards tile center
+        worldX = worldX * 0.3 + tileCenterX * 0.7;
+        worldZ = worldZ * 0.3 + tileCenterZ * 0.7;
+    }
+    
     const geometry = new THREE.PlaneGeometry(stainSize, stainSize);
     
     // Use Standard material so it reacts to light (dark in darkness)

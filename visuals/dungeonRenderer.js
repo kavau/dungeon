@@ -2,9 +2,9 @@ import {
     createFloorTexture, 
     createCeilingTexture, 
     createWallTexture, 
-    createWoodTexture, 
-    createFrameTexture, 
-    createPanelTexture 
+    createWoodTexture,
+    createFrameTexture,
+    createPanelTexture
 } from './textureGenerator.js';
 
 export function createDungeonVisuals(dungeonMap, theme, cellSize) {
@@ -53,25 +53,41 @@ export function createDungeonVisuals(dungeonMap, theme, cellSize) {
             
             // Check current cell
             if (gridX >= 0 && gridX < width && gridY >= 0 && gridY < height) {
-                if (dungeonMap[gridY][gridX] === 2) {
+                const cellType = dungeonMap[gridY][gridX];
+                if (cellType === 2) {
                     isWater = true;
-                } else {
-                    // Check neighbors for proximity to water
-                    // We check if we are close to a water cell border
-                    const localX = wx % cellSize;
-                    const localY = wy % cellSize;
-                    const margin = cellSize * 0.4; // Influence radius
-                    
-                    if (localX < margin && gridX > 0 && dungeonMap[gridY][gridX-1] === 2) isNearWater = true;
-                    if (localX > cellSize - margin && gridX < width-1 && dungeonMap[gridY][gridX+1] === 2) isNearWater = true;
-                    if (localY < margin && gridY > 0 && dungeonMap[gridY-1][gridX] === 2) isNearWater = true;
-                    if (localY > cellSize - margin && gridY < height-1 && dungeonMap[gridY+1][gridX] === 2) isNearWater = true;
-                    
+                }
+                
+                // Check neighbors for proximity to water
+                const localX = wx % cellSize;
+                const localY = wy % cellSize;
+                const margin = cellSize * 0.4; // Influence radius
+                
+                const checkNeighbor = (dx, dy) => {
+                    if (gridX + dx >= 0 && gridX + dx < width && gridY + dy >= 0 && gridY + dy < height) {
+                        const type = dungeonMap[gridY+dy][gridX+dx];
+                        if (type === 2) return 'water';
+                    }
+                    return null;
+                };
+
+                const neighbors = [
+                    { dx: -1, dy: 0, cond: localX < margin },
+                    { dx: 1, dy: 0, cond: localX > cellSize - margin },
+                    { dx: 0, dy: -1, cond: localY < margin },
+                    { dx: 0, dy: 1, cond: localY > cellSize - margin },
                     // Diagonals
-                    if (localX < margin && localY < margin && gridX > 0 && gridY > 0 && dungeonMap[gridY-1][gridX-1] === 2) isNearWater = true;
-                    if (localX > cellSize - margin && localY < margin && gridX < width-1 && gridY > 0 && dungeonMap[gridY-1][gridX+1] === 2) isNearWater = true;
-                    if (localX < margin && localY > cellSize - margin && gridX > 0 && gridY < height-1 && dungeonMap[gridY+1][gridX-1] === 2) isNearWater = true;
-                    if (localX > cellSize - margin && localY > cellSize - margin && gridX < width-1 && gridY < height-1 && dungeonMap[gridY+1][gridX+1] === 2) isNearWater = true;
+                    { dx: -1, dy: -1, cond: localX < margin && localY < margin },
+                    { dx: 1, dy: -1, cond: localX > cellSize - margin && localY < margin },
+                    { dx: -1, dy: 1, cond: localX < margin && localY > cellSize - margin },
+                    { dx: 1, dy: 1, cond: localX > cellSize - margin && localY > cellSize - margin }
+                ];
+
+                for (const n of neighbors) {
+                    if (n.cond) {
+                        const type = checkNeighbor(n.dx, n.dy);
+                        if (type === 'water') isNearWater = true;
+                    }
                 }
             }
             
@@ -315,6 +331,11 @@ export function createDungeonVisuals(dungeonMap, theme, cellSize) {
         visuals.walls.push(seabedMesh); // Add seabed first
         visuals.walls.push(waterMesh); // Add water surface
     }
+
+
+    // Reset rotation/scale of dummy
+    dummy.rotation.set(0, 0, 0);
+    dummy.scale.set(1, 1, 1);
 
     return visuals;
 }
