@@ -197,6 +197,52 @@ export function createTreasureVisuals(type) {
             }
             break;
 
+        case 'amulet':
+            // The Strange Amulet - pulsating purple gem on a chain
+            
+            // Chain (Torus)
+            const chain = new THREE.Mesh(
+                new THREE.TorusGeometry(0.2, 0.02, 8, 16),
+                new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8, roughness: 0.4 })
+            );
+            // chain.rotation.x = Math.PI / 2; // Using default orientation relative to group
+            treasureGroup.add(chain);
+            
+            // Amulet Setting
+            const setting = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.12, 0.12, 0.05, 8),
+                new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 1.0, roughness: 0.3 })
+            );
+            setting.rotation.x = Math.PI / 2;
+            setting.position.y = -0.2; // Hanging down
+            treasureGroup.add(setting);
+            
+            // The Gem
+            const amuletGem = new THREE.Mesh(
+                new THREE.OctahedronGeometry(0.08, 0),
+                new THREE.MeshStandardMaterial({ 
+                    color: 0x9933ff, 
+                    emissive: 0x9933ff,
+                    emissiveIntensity: 0.8,
+                    metalness: 0.9,
+                    roughness: 0.1
+                })
+            );
+            amuletGem.rotation.x = Math.PI / 2;
+            amuletGem.position.y = -0.2;
+            amuletGem.position.z = 0.03;
+            amuletGem.scale.set(1, 0.5, 1);
+            treasureGroup.add(amuletGem);
+            
+            // Corruption particles/glow (PointLight)
+            const amuletLight = new THREE.PointLight(0x9933ff, 1.0, 3);
+            amuletLight.position.y = -0.2;
+            amuletLight.position.z = 0.1;
+            treasureGroup.add(amuletLight);
+            
+            treasureGroup.userData.isAmulet = true;
+            break;
+
         case 'torch':
             // Dropped torch
             const torchHandle = new THREE.Mesh(

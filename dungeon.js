@@ -18,8 +18,13 @@ export function generateDungeon() {
 
     // Update Fog
     if (game.scene.fog) {
-        game.scene.fog.color.setHex(theme.fogColor);
-        game.scene.fog.far = theme.fogDist;
+        if (game.player.amuletActive) {
+            game.scene.fog.color.setHex(0x220044); // Deep Purple
+            game.scene.fog.far = 50;
+        } else {
+            game.scene.fog.color.setHex(theme.fogColor);
+            game.scene.fog.far = theme.fogDist;
+        }
     }
 
     // Update Ambient Light

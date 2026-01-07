@@ -1,8 +1,8 @@
 import { game, dungeonMap } from './state.js';
-import { logMessage, updateLevelName } from './ui.js';
+import { logMessage, updateLevelName, updateHealthDisplay } from './ui.js';
 import { spawnSingleMonster, spawnMonsters, createMonster, MONSTER_TYPES } from './entities/monster.js';
 import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder } from './dungeon.js';
-import { spawnTreasures } from './entities/items.js';
+import { spawnTreasures, createTreasure, TREASURE_TYPES } from './entities/items.js';
 import { spawnDecorations, spawnFireflies, createDecoration, DECORATION_TYPES } from './entities/decoration.js';
 import { spawnWaterCreatures } from './entities/waterCreatures.js';
 import { LEVEL_CONFIG } from './levelConfig.js';
@@ -22,7 +22,11 @@ export function setupLevel() {
     let facing = 1; // Default East
     
     if (config.setup) {
-        const result = config.setup(game, dungeonMap, { createDecoration, DECORATION_TYPES, createMonster, MONSTER_TYPES });
+        const result = config.setup(game, dungeonMap, { 
+            createDecoration, DECORATION_TYPES, 
+            createMonster, MONSTER_TYPES,
+            createTreasure, TREASURE_TYPES
+        });
         px = result.x;
         py = result.y;
         facing = result.facing;
@@ -224,6 +228,21 @@ export function checkCollision(position) {
 
 // Update player movement
 export function advanceTurn() {
+    // Amulet Regeneration
+    if (game.player.amuletActive) {
+        if (game.player.health < game.player.maxHealth) {
+            game.player.health = Math.min(game.player.maxHealth, game.player.health + 1);
+            updateHealthDisplay();
+            // logMessage("The amulet warms your skin.", "magic"); // Optional spam
+        }
+        // Step 2 doesn't mention Madness, but Game Design doc says "increases madness". 
+        // We'll leave madness implementation for the next step as requested "implement it in small steps".
+        // Or wait, the prompt said "2) ... and increases 'madness'".
+        // But the user prompt here was: "2) ... grants +1 HP regeneration per turn ... creates purple fog/vignette effect."
+        // It cut off madness I think.
+        // I will add a comment for where Madness goes.
+    }
+
     if (!game.player.torch) return;
     
     game.player.torch.turnsActive++;

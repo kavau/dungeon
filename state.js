@@ -25,7 +25,9 @@ export const game = {
         animationDuration: 0.3, // seconds
         health: 100,
         maxHealth: 100,
-        attackPower: 20
+        attackPower: 20,
+        hasAmulet: false,
+        amuletActive: false
     },
     controls: {
         moveForward: false,

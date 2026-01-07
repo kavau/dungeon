@@ -74,6 +74,7 @@ export const LEVEL_CONFIG = {
             coin: 0.60,
             trinket: 0.70
         },
+        itemCount: 8,
         decorations: [
             'wall_inscription', 'bone_pile', 'spider_web'
         ]
@@ -213,6 +214,7 @@ export const LEVEL_CONFIG = {
             coin: 0.20,
             trinket: 0.40
         },
+        itemCount: 4,
         decorations: [
             'stalactite', 'stalagmite', 'mushrooms', 'puddle', 'moss_patch'
         ],
@@ -265,7 +267,7 @@ export const LEVEL_CONFIG = {
             }
         },
         setup: (game, dungeonMap, helpers) => {
-            const { createDecoration, DECORATION_TYPES } = helpers;
+            const { createDecoration, DECORATION_TYPES, createTreasure, TREASURE_TYPES } = helpers;
             const cellSize = game.dungeon.cellSize;
             
             // Special setup for Level 5 (The Awakening)
@@ -322,6 +324,29 @@ export const LEVEL_CONFIG = {
                  }
             }
             
+            // Spawn The Strange Amulet
+            if (createTreasure && TREASURE_TYPES) {
+                // Try to find a free spot near the player
+                const offsets = [{x:-1, y:0}, {x:-1, y:-1}, {x:-1, y:1}, {x:0, y:1}, {x:0, y:-1}];
+                let placed = false;
+                for (let off of offsets) {
+                    const ax = px + off.x;
+                    const ay = py + off.y;
+                    if (ax >= 0 && ax < game.dungeon.width && ay >= 0 && ay < game.dungeon.height) {
+                        if (dungeonMap[ay][ax] === 0) {
+                            createTreasure(ax, ay, TREASURE_TYPES.AMULET);
+                            console.log("Spawned Strange Amulet at", ax, ay);
+                            placed = true;
+                            break;
+                        }
+                    }
+                }
+                // Fallback: place on player if no space (it will be picked up immediately? No, update loop checks grid match. Visuals might overlap)
+                if (!placed) {
+                     createTreasure(px, py, TREASURE_TYPES.AMULET);
+                }
+            }
+
             return { x: px, y: py, facing: 1 }; // 1 is East (Facing the Wyrm)
         }
     }

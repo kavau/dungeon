@@ -13,7 +13,8 @@ export const TREASURE_TYPES = {
     GEM: { name: 'gem', value: 50, color: 0x00FFFF },
     TRINKET: { name: 'trinket', value: 25, color: 0xFF69B4 },
     TORCH: { name: 'torch', value: 0, color: 0xffaa00 },
-    JOURNAL_PAGE: { name: 'journal_page', value: 0, color: 0xffffee }
+    JOURNAL_PAGE: { name: 'journal_page', value: 0, color: 0xffffee },
+    AMULET: { name: 'amulet', value: 0, color: 0x9933ff }
 };
 
 export function createTreasure(gridX, gridY, type) {
@@ -92,6 +93,9 @@ export function collectTreasure(treasure, index) {
         logMessage(`You picked up a fresh torch! Your light is renewed.`, 'torch');
     } else if (treasure.type.name === 'journal_page') {
         collectJournalPage(treasure.pageId);
+    } else if (treasure.type.name === 'amulet') {
+        game.player.hasAmulet = true;
+        logMessage(`You found a strange amulet. It pulses with a dark energy. (Press 'U' to use)`, 'item');
     } else {
         game.wealth += treasure.type.value;
         logMessage(`You picked up a ${treasure.type.name} worth ${treasure.type.value} gold!`, 'item');
@@ -166,7 +170,11 @@ export function spawnJournalPages() {
 
 export function spawnTreasures() {
     const cellSize = game.dungeon.cellSize;
-    const numTreasures = 15;
+    // Reduce default spawn rate (was 15)
+    const level = game.dungeon.level || 1;
+    const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+    const numTreasures = config.itemCount !== undefined ? config.itemCount : 5;
+    
     let spawned = 0;
     
     spawnJournalPages();

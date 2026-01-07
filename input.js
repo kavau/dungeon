@@ -7,7 +7,8 @@ import {
     strafeRight,
     waitTurn, 
     playerAttack, 
-    interact 
+    interact,
+    toggleAmulet
 } from './player.js';
 import { 
     showDescriptions, 
@@ -230,6 +231,10 @@ export function setupControls() {
             case 'KeyE':
                 e.preventDefault();
                 interact();
+                break;
+            case 'KeyU':
+                e.preventDefault();
+                toggleAmulet();
                 break;
         }
     });

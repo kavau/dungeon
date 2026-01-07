@@ -57,6 +57,19 @@ The dungeon consists of distinct thematic layers. The player starts at the botto
 *   **Dungeon Layout**: Walls, floors, and ceilings are generated using 3D noise (Simplex/Perlin) to create uneven, organic terrain (cave-like or ruined).
 *   **Decorations**: Stalactites, stalagmites, puddles, webs, and debris are placed procedurally based on room geometry (e.g., webs in corners, puddles in dips).
 
+### The Strange Amulet
+*   **Acquisition**: Found on the island in **Level 5** (The Deep Caves), near the start.
+*   **Mechanic**: Player can toggle wearing/removing it at will.
+*   **Healing**: Restores **1 HP per turn** when worn and injured.
+*   **Corruption (Madness)**:
+    *   Accumulates hidden **Madness Points** while healing.
+    *   **Thresholds**:
+        *   *Warmth/Glow*: Amulet heats up and glows (dim -> bright).
+        *   *Voices*: Auditory hallucinations/whispers.
+        *   *Attraction*: Draws spectral enemies (Ghosts, Wraiths, Shadows) in spiritual areas (e.g., Catacombs).
+        *   *Submission (100 Points)*: Total loss of control. Player blacks out and respawns back at Level 5.
+    *   **Mitigation**: Removing the amulet stops active effects (glow, attraction, voices) but does **not** reset the Madness score.
+
 ---
 
 ## 5. Entities & Obstacles

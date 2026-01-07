@@ -4,6 +4,7 @@ import { logMessage, updateHealthDisplay } from './ui.js';
 import { monsterShouldBleed, getMonsterBloodSize, createBloodStain } from './effects.js';
 import { createTreasure, TREASURE_TYPES } from './entities/items.js';
 import { getFloorHeight } from './visuals/dungeonRenderer.js';
+import { LEVEL_CONFIG } from './levelConfig.js';
 
 export function interact() {
     // Prevent rapid interaction
@@ -502,4 +503,42 @@ export function strafeRight() {
         else if (collision === 'monster') logMessage("A monster blocks your way.", 'combat');
         else if (collision === 'water') logMessage("The water is too deep to cross.", 'combat');
     }
+}
+
+export function toggleAmulet() {
+    if (!game.player.hasAmulet) {
+        logMessage("You don't have the amulet.", "door");
+        return;
+    }
+    
+    game.player.amuletActive = !game.player.amuletActive;
+    
+    const level = game.dungeon.level || 1;
+    const config = LEVEL_CONFIG[level] || LEVEL_CONFIG[1];
+    
+    if (game.player.amuletActive) {
+        logMessage("You put on the strange amulet. The world shifts into madness.", "item");
+        
+        // Apply Purple Visuals
+        if (game.scene.fog) {
+            game.scene.fog.color.setHex(0x220044); // Deep Purple
+            // Reduced effect by increasing render distance
+            game.scene.fog.far = 50; 
+        }
+        
+        // Add a temporary DOM overlay for vignette if we wanted, 
+        // but for now let's stick to Fog.
+        
+    } else {
+        logMessage("You take off the strange amulet.", "item");
+        
+        // Restore Visuals
+        if (game.scene.fog) {
+            game.scene.fog.color.setHex(config.theme.fogColor);
+            game.scene.fog.far = config.theme.fogDist;
+        }
+    }
+    
+    // Force a visual update if needed
+    game.needsLightUpdate = true;
 }
