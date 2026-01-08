@@ -337,8 +337,12 @@ export function updateMonsters(deltaTime) {
                     monster.mesh.position.y = floorH + 1.3 + Math.sin(time) * (0.25 * aggroAmp);
                     break;
                 case MONSTER_TYPES.MIMIC:
-                    // Mimic stays still unless close to player
-                    monster.mesh.position.y = floorH + 0.3;
+                    // Mimic stays still when disguised, bobs when aggressive
+                    if (monster.isAggro) {
+                        monster.mesh.position.y = floorH + 0.3 + Math.sin(time) * (0.1 * aggroAmp);
+                    } else {
+                        monster.mesh.position.y = floorH + 0.3;
+                    }
                     break;
                 default:
                     // Standard humanoid (stand height approx 0.75 + floor)
@@ -389,6 +393,20 @@ export function updateMonsters(deltaTime) {
             }
         }
         
+        // Update mimic appearance based on aggro state
+        if (monster.type === MONSTER_TYPES.MIMIC && monster.body.userData) {
+            const eyesVisible = monster.isAggro;
+            if (monster.body.userData.mimicEye1) {
+                monster.body.userData.mimicEye1.visible = eyesVisible;
+            }
+            if (monster.body.userData.mimicEye2) {
+                monster.body.userData.mimicEye2.visible = eyesVisible;
+            }
+            if (monster.body.userData.mimicMouth) {
+                monster.body.userData.mimicMouth.visible = eyesVisible;
+            }
+        }
+        
         // Aggro monsters face the player
         if (monster.isAggro && !monster.animating) {
             const playerGridX = Math.floor(game.player.position.x / game.dungeon.cellSize);
@@ -425,33 +443,41 @@ export function updateMonsters(deltaTime) {
             // --- ACTION START --- (Reset flag first thing for turn based)
             if (isTurnBased) monster.canAct = false;
 
-                // Check distance to player
+                // Check distance to player (weighted distance where diagonals count as 1.5)
                 const playerGridX = Math.floor(game.player.position.x / game.dungeon.cellSize);
                 const playerGridZ = Math.floor(game.player.position.z / game.dungeon.cellSize);
-                const distToPlayer = Math.abs(monster.gridX - playerGridX) + Math.abs(monster.gridY - playerGridZ);
+                const dx = Math.abs(monster.gridX - playerGridX);
+                const dy = Math.abs(monster.gridY - playerGridZ);
+                // Diagonal-friendly distance: orthogonal=1, diagonal=1.5, knight's move=2.5
+                const distToPlayer = Math.max(dx, dy) + 0.5 * Math.min(dx, dy);
                 
                 // If player is dead, lose aggro
                 if (game.player.health <= 0) {
                     monster.isAggro = false;
                 }
                 // Chance to become aggro if close
-                else if (!monster.isAggro && distToPlayer <= 5) {
-                    // Calculate distance-based probability (closer = higher chance)
-                    // At distance 1: 100%, distance 5: ~20%
-                    const distanceFactor = (6 - distToPlayer) / 5; // 1.0 at dist 1, 0.2 at dist 5
+                else if (!monster.isAggro) {
+                    // Mimics only detect at radius 1.5, others at radius 5
+                    const detectionRadius = monster.type === MONSTER_TYPES.MIMIC ? 1.5 : 5;
                     
-                    // Get monster aggressiveness (default 1.0 if not defined)
-                    const aggressiveness = MONSTER_AGGRESSIVENESS[monster.type] || 1.0;
-                    
-                    // Combined probability: distance * aggressiveness * base
-                    const aggroProbability = distanceFactor * aggressiveness * 0.2;
-                    
-                    const detected = Math.random() < aggroProbability;
-                    if (game.isTestChamber) {
-                        const mName = getMonsterName(monster.type);
-                        logMessage(`[${mName}] Check: dist=${distToPlayer} prob=${(aggroProbability*100).toFixed(1)}% saw=${detected}`, "normal");
+                    if (distToPlayer <= detectionRadius) {
+                        // Calculate distance-based probability (closer = higher chance)
+                        const maxDist = detectionRadius;
+                        const distanceFactor = (maxDist + 1 - distToPlayer) / maxDist;
+                        
+                        // Get monster aggressiveness (default 1.0 if not defined)
+                        const aggressiveness = MONSTER_AGGRESSIVENESS[monster.type] || 1.0;
+                        
+                        // Combined probability: distance * aggressiveness * base
+                        const aggroProbability = distanceFactor * aggressiveness * 0.2;
+                        
+                        const detected = Math.random() < aggroProbability;
+                        if (game.isTestChamber) {
+                            const mName = getMonsterName(monster.type);
+                            logMessage(`[${mName}] Check: dist=${distToPlayer} prob=${(aggroProbability*100).toFixed(1)}% saw=${detected}`, "normal");
+                        }
+                        if (detected) monster.isAggro = true;
                     }
-                    if (detected) monster.isAggro = true;
                 }
                 
                 // Set next move time based on aggro state (faster if aggro)

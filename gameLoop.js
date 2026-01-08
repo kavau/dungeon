@@ -237,6 +237,10 @@ export function checkCollision(position) {
     for (let monster of game.monsters) {
         // Check if player is trying to move into the same grid cell as a monster
         if (playerGridX === monster.gridX && playerGridZ === monster.gridY) {
+            // Mimics become aggressive when bumped into
+            if (monster.type === 'mimic' && !monster.isAggro) {
+                monster.isAggro = true;
+            }
             return 'monster';
         }
         
@@ -247,6 +251,10 @@ export function checkCollision(position) {
         const minDistance = 0.8; // Monster collision radius
         
         if (distance < minDistance) {
+            // Mimics become aggressive when bumped into
+            if (monster.type === 'mimic' && !monster.isAggro) {
+                monster.isAggro = true;
+            }
             return 'monster';
         }
     }
@@ -264,7 +272,9 @@ function resetAutoWait() {
     if (game.settings && game.settings.turnMode === 'turnbased' && game.started && !game.paused && !game.showingLevelScreen) {
         const waitTime = game.isTestChamber ? 8000 : 4000; // 8s in test chamber, 4s in game
         autoWaitTimer = setTimeout(() => {
-            logMessage("You wait...", "normal");
+            if (game.player.health > 0) {
+                logMessage("You wait...", "normal");
+            }
             advanceTurn();
         }, waitTime);
     }

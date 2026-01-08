@@ -24,21 +24,6 @@ export function generateTestChamber() {
         }
     }
 
-    // Spawn two monsters
-    // Player is at (3,3) in gameLoop but revised to (2,2) in previous turn? 
-    // Let's check where the player spawns. 
-    // Previous turn: gameLoop.js updated to spawn at 2,2.
-    // So (2,2) is center of 5x5 interior?
-    // Map is 7x7 (0-6). Walls at 0 and 6. Interior is 1-5.
-    // Center is (3,3). 
-    // Wait, the previous turn set player to (2,2). 
-    // If the room is 1-5, (2,2) is upper-leftish from center (3,3).
-    // Let's place monsters at (4,2) and (2,4) to be somewhat away.
-    
-    // Actually, createMonster checks dungeonMap for valid position, so we must ensure map is set first.
-    // It is set above.
-    
-    // Using simple types for now
-    createMonster(4, 2, MONSTER_TYPES.GOBLIN);
-    createMonster(2, 4, MONSTER_TYPES.SKELETON);
+    // Spawn one mimic for testing
+    createMonster(4, 3, MONSTER_TYPES.MIMIC);
 }

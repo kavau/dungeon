@@ -1269,21 +1269,54 @@ export function createMonsterVisuals(type) {
                 new THREE.MeshStandardMaterial({ color: 0xFFD700, metalness: 0.8, roughness: 0.2 })
             );
             mimicTrim.position.z = 0.25;
-            // Eyes (to distinguish from real chests when close)
+            
+            // Eyes (only visible when aggressive)
             const eyeGeometry = new THREE.SphereGeometry(0.05, 8, 8);
             const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.5 });
             const mimicEye1 = new THREE.Mesh(eyeGeometry, eyeMaterial);
             mimicEye1.position.set(-0.15, 0.35, 0.3);
+            mimicEye1.visible = false;  // Hidden by default
             const mimicEye2 = new THREE.Mesh(eyeGeometry, eyeMaterial);
             mimicEye2.position.set(0.15, 0.35, 0.3);
+            mimicEye2.visible = false;  // Hidden by default
+            
+            // Mouth with fangs (only visible when aggressive)
+            const mouthGroup = new THREE.Group();
+            const mouthGeometry = new THREE.BoxGeometry(0.25, 0.05, 0.05);
+            const mouthMaterial = new THREE.MeshStandardMaterial({ color: 0x330000 });
+            const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
+            mouth.position.set(0, 0.2, 0.3);
+            
+            // Fangs
+            const fangGeometry = new THREE.ConeGeometry(0.03, 0.1, 4);
+            const fangMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const fang1 = new THREE.Mesh(fangGeometry, fangMaterial);
+            fang1.position.set(-0.08, 0.15, 0.3);
+            fang1.rotation.x = Math.PI;
+            const fang2 = new THREE.Mesh(fangGeometry, fangMaterial);
+            fang2.position.set(0.08, 0.15, 0.3);
+            fang2.rotation.x = Math.PI;
+            
+            mouthGroup.add(mouth);
+            mouthGroup.add(fang1);
+            mouthGroup.add(fang2);
+            mouthGroup.visible = false;  // Hidden by default
+            
             body.add(mimicBody);
             body.add(mimicLid);
             body.add(mimicTrim);
             body.add(mimicEye1);
             body.add(mimicEye2);
+            body.add(mouthGroup);
+            
+            // Store references for later visibility control
+            body.userData.mimicEye1 = mimicEye1;
+            body.userData.mimicEye2 = mimicEye2;
+            body.userData.mimicMouth = mouthGroup;
+            
             monsterGroup.position.y = 0.3;
             speed = 0.6;
-            moveChance = 0.2; // Mimics don't move much
+            moveChance = 0.05; // Mimics barely move when disguised
             break;
         }
             

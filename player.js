@@ -207,7 +207,9 @@ export function rotatePlayer(direction) {
 export function waitTurn() {
     if (!game.player.canMove || game.player.animating) return;
     
-    logMessage("You wait a moment.");
+    if (game.player.health > 0) {
+        logMessage("You wait a moment.");
+    }
     advanceTurn();
     game.player.canMove = false;
     
