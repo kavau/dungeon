@@ -294,23 +294,28 @@ export function updateMonsters(deltaTime) {
 
         } else {
             // Type-specific idle animation
-            const time = Date.now() * 0.002 + monster.gridX;
+            const baseTime = Date.now() * 0.002 + monster.gridX;
+            // Apply aggro multiplier
+            const aggroMult = monster.isAggro ? 2 : 1;
+            const aggroAmp = monster.isAggro ? 2 : 1;
+            const time = baseTime * aggroMult;
+            
             // Recalculate floor height for idle in case it changed or for consistency
              const floorH = getFloorHeight(monster.mesh.position.x, monster.mesh.position.z, dungeonMap);
              
             switch(monster.type) {
                 case MONSTER_TYPES.JELLY:
-                    monster.mesh.position.y = floorH + 0.1 + Math.sin(time * 2) * 0.15; // Low + bob
+                    monster.mesh.position.y = floorH + 0.1 + Math.sin(time * 2) * (0.15 * aggroAmp); // Low + bob
                     monster.body.scale.y = 0.8 + Math.sin(time * 2) * 0.1;
                     break;
                 case MONSTER_TYPES.GHOST:
-                    monster.mesh.position.y = floorH + 1.2 + Math.sin(time) * 0.2;
+                    monster.mesh.position.y = floorH + 1.2 + Math.sin(time) * (0.2 * aggroAmp);
                     break;
                 case MONSTER_TYPES.SPIDER:
-                    monster.mesh.position.y = floorH + 0.3 + Math.sin(time * 3) * 0.05;
+                    monster.mesh.position.y = floorH + 0.3 + Math.sin(time * 3) * (0.05 * aggroAmp);
                     break;
                 case MONSTER_TYPES.RAT:
-                    monster.mesh.position.y = floorH + 0.25 + Math.sin(time * 4) * 0.05;
+                    monster.mesh.position.y = floorH + 0.25 + Math.sin(time * 4) * (0.05 * aggroAmp);
                     break;
                 case MONSTER_TYPES.PLANT:
                     // Plant sways
@@ -318,18 +323,18 @@ export function updateMonsters(deltaTime) {
                     monster.mesh.position.y = floorH; // Grounded
                     break;
                 case MONSTER_TYPES.BAT:
-                    monster.mesh.position.y = floorH + 1.5 + Math.sin(time * 3) * 0.3;
+                    monster.mesh.position.y = floorH + 1.5 + Math.sin(time * 3) * (0.3 * aggroAmp);
                     break;
                 case MONSTER_TYPES.SALAMANDER:
                     // Keep close to ground, slight breathing motion
-                    monster.mesh.position.y = floorH + Math.abs(Math.sin(time * 2)) * 0.02; // Used to mean Y=0
+                    monster.mesh.position.y = floorH + Math.abs(Math.sin(time * 2)) * (0.02 * aggroAmp); // Used to mean Y=0
                     break;
                 case MONSTER_TYPES.CUBE:
-                    monster.mesh.position.y = floorH + 0.75 + Math.sin(time) * 0.1;
+                    monster.mesh.position.y = floorH + 0.75 + Math.sin(time) * (0.1 * aggroAmp);
                     monster.body.rotation.y += 0.01;
                     break;
                 case MONSTER_TYPES.WRAITH:
-                    monster.mesh.position.y = floorH + 1.3 + Math.sin(time) * 0.25;
+                    monster.mesh.position.y = floorH + 1.3 + Math.sin(time) * (0.25 * aggroAmp);
                     break;
                 case MONSTER_TYPES.MIMIC:
                     // Mimic stays still unless close to player
@@ -337,15 +342,66 @@ export function updateMonsters(deltaTime) {
                     break;
                 default:
                     // Standard humanoid (stand height approx 0.75 + floor)
-                    monster.mesh.position.y = floorH + 0.75 + Math.sin(time) * 0.1;
+                    monster.mesh.position.y = floorH + 0.75 + Math.sin(time) * (0.1 * aggroAmp);
             }
         }
         
-        // Rotate body slowly (except for some types)
+        // Rotate body slowly (except for some types) - but not if aggro
         if (monster.type !== MONSTER_TYPES.PLANT && 
             monster.type !== MONSTER_TYPES.RAT && 
             monster.type !== MONSTER_TYPES.SALAMANDER) {
-            monster.body.rotation.y += deltaTime * 0.5;
+            if (!monster.isAggro) {
+                // Idle rotation
+                monster.body.rotation.y += deltaTime * 0.5;
+            } else {
+                // Aggro: face toward player based on facing direction
+                // 0=North, 1=East, 2=South, 3=West
+                let targetRotation = 0;
+                switch(monster.facing) {
+                    case 0: // North
+                        targetRotation = Math.PI;
+                        break;
+                    case 1: // East
+                        targetRotation = Math.PI / 2;
+                        break;
+                    case 2: // South
+                        targetRotation = 0;
+                        break;
+                    case 3: // West
+                        targetRotation = -Math.PI / 2;
+                        break;
+                }
+                
+                // Smooth rotation (shortest path)
+                let currentRot = monster.body.rotation.y;
+                let diff = targetRotation - currentRot;
+                
+                // Normalize to [-PI, PI]
+                while (diff > Math.PI) diff -= 2 * Math.PI;
+                while (diff < -Math.PI) diff += 2 * Math.PI;
+                
+                // Lerp with speed factor
+                const rotSpeed = 8.0; // radians per second
+                const maxRotation = rotSpeed * deltaTime;
+                const rotAmount = Math.max(-maxRotation, Math.min(maxRotation, diff));
+                
+                monster.body.rotation.y = currentRot + rotAmount;
+            }
+        }
+        
+        // Aggro monsters face the player
+        if (monster.isAggro && !monster.animating) {
+            const playerGridX = Math.floor(game.player.position.x / game.dungeon.cellSize);
+            const playerGridZ = Math.floor(game.player.position.z / game.dungeon.cellSize);
+            const dx = playerGridX - monster.gridX;
+            const dy = playerGridZ - monster.gridY;
+            
+            // Determine facing direction toward player
+            if (Math.abs(dx) > Math.abs(dy)) {
+                monster.facing = dx > 0 ? 1 : 3; // East or West
+            } else if (Math.abs(dy) > 0) {
+                monster.facing = dy > 0 ? 2 : 0; // South or North
+            }
         }
         
         // AI decision making
@@ -384,7 +440,7 @@ export function updateMonsters(deltaTime) {
                     const detected = Math.random() < 0.2;
                     if (game.isTestChamber) {
                         const mName = getMonsterName(monster.type);
-                        console.log(`[${mName}] Aggro Check: dist=${distToPlayer}, detected=${detected}`);
+                        logMessage(`[${mName}] Check: dist=${distToPlayer} saw=${detected}`, "normal");
                     }
                     if (detected) monster.isAggro = true;
                 }
@@ -402,42 +458,60 @@ export function updateMonsters(deltaTime) {
                 
                 if (monster.isAggro) {
                     if (game.isTestChamber) {
-                             console.log(`[${getMonsterName(monster.type)}] Chasing Player`);
+                             logMessage(`[${getMonsterName(monster.type)}] Chasing!`, "combat");
                     }
                     // Move towards player
                     const dx = playerGridX - monster.gridX;
                     const dy = playerGridZ - monster.gridY;
                     
-                    // Determine best direction
+                    // Determine best direction - prefer larger absolute distance
                     let bestFacing = -1;
+                    let secondaryFacing = -1;
                     
                     if (Math.abs(dx) > Math.abs(dy)) {
-                        // Try horizontal first
+                        // Horizontal distance is greater
                         if (dx > 0) bestFacing = 1; // East
                         else bestFacing = 3; // West
-                    } else {
-                        // Try vertical first
+                        
+                        // Secondary direction
+                        if (dy > 0) secondaryFacing = 2; // South
+                        else if (dy < 0) secondaryFacing = 0; // North
+                    } else if (Math.abs(dy) > Math.abs(dx)) {
+                        // Vertical distance is greater
                         if (dy > 0) bestFacing = 2; // South
                         else bestFacing = 0; // North
+                        
+                        // Secondary direction
+                        if (dx > 0) secondaryFacing = 1; // East
+                        else if (dx < 0) secondaryFacing = 3; // West
+                    } else {
+                        // Distances are equal, pick randomly but consistently
+                        if (Math.random() < 0.5) {
+                            if (dx > 0) bestFacing = 1;
+                            else bestFacing = 3;
+                            
+                            if (dy > 0) secondaryFacing = 2;
+                            else if (dy < 0) secondaryFacing = 0;
+                        } else {
+                            if (dy > 0) bestFacing = 2;
+                            else bestFacing = 0;
+                            
+                            if (dx > 0) secondaryFacing = 1;
+                            else if (dx < 0) secondaryFacing = 3;
+                        }
                     }
                     
                     monster.facing = bestFacing;
                     if (!tryMoveMonster(monster)) {
-                        // If blocked, try the other axis
-                         if (Math.abs(dx) > Math.abs(dy)) {
-                            // Was horizontal, try vertical
-                            if (dy > 0) monster.facing = 2;
-                            else monster.facing = 0;
-                        } else {
-                            // Was vertical, try horizontal
-                            if (dx > 0) monster.facing = 1;
-                            else monster.facing = 3;
+                        // If blocked, try the secondary direction
+                        if (secondaryFacing !== -1) {
+                            monster.facing = secondaryFacing;
+                            tryMoveMonster(monster);
                         }
-                        tryMoveMonster(monster);
                     }
                 } else {
                     if (game.isTestChamber) {
-                         console.log(`[${getMonsterName(monster.type)}] Wandering random`);
+                         logMessage(`[${getMonsterName(monster.type)}] Wandering`, "normal");
                     }
                     // Random movement decision
                     const action = Math.random();
@@ -491,22 +565,36 @@ export function tryMoveMonster(monster) {
             }
         }
 
-        // Check if player is in the target grid cell
+        // Check if player is in the target grid cell (check both current and target positions)
         const playerGridX = Math.floor(game.player.position.x / cellSize);
         const playerGridZ = Math.floor(game.player.position.z / cellSize);
         
-        if (newGridX === playerGridX && newGridY === playerGridZ) {
-            // Player is in the way, don't move
+        // Also check player's target position if they're currently moving
+        const playerTargetGridX = game.player.animating ? 
+            Math.floor(game.player.targetPosition.x / cellSize) : playerGridX;
+        const playerTargetGridZ = game.player.animating ? 
+            Math.floor(game.player.targetPosition.z / cellSize) : playerGridZ;
+        
+        if ((newGridX === playerGridX && newGridY === playerGridZ) ||
+            (newGridX === playerTargetGridX && newGridY === playerTargetGridZ)) {
+            // Player is in the way or moving there, don't move
             return false;
         }
         
-        // Check if another monster is already in the target position
+        // Check if another monster is already in the target position OR moving there
         for (let otherMonster of game.monsters) {
-            if (otherMonster !== monster && 
-                otherMonster.gridX === newGridX && 
-                otherMonster.gridY === newGridY) {
-                // Another monster is in the way
-                return false;
+            if (otherMonster !== monster) {
+                // Check both current position and target position (for monsters currently animating)
+                const otherTargetX = otherMonster.animating ? 
+                    Math.floor(otherMonster.targetPosition.x / cellSize) : otherMonster.gridX;
+                const otherTargetY = otherMonster.animating ? 
+                    Math.floor(otherMonster.targetPosition.z / cellSize) : otherMonster.gridY;
+                
+                if ((otherMonster.gridX === newGridX && otherMonster.gridY === newGridY) ||
+                    (otherTargetX === newGridX && otherTargetY === newGridY)) {
+                    // Another monster is in the way or moving there
+                    return false;
+                }
             }
         }
         

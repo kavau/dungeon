@@ -262,10 +262,11 @@ function resetAutoWait() {
     if (autoWaitTimer) clearTimeout(autoWaitTimer);
     
     if (game.settings && game.settings.turnMode === 'turnbased' && game.started && !game.paused && !game.showingLevelScreen) {
+        const waitTime = game.isTestChamber ? 8000 : 4000; // 8s in test chamber, 4s in game
         autoWaitTimer = setTimeout(() => {
             logMessage("You wait...", "normal");
             advanceTurn();
-        }, 4000); // 4 seconds
+        }, waitTime);
     }
 }
 
@@ -274,9 +275,11 @@ export function advanceTurn() {
     // Reset Auto-wait on any turn action
     resetAutoWait();
 
-    // Trigger Monster Turns if Turn-Based
+    // Trigger Monster Turns if Turn-Based (with slight delay)
     if (game.settings && game.settings.turnMode === 'turnbased') {
-        triggerMonsterTurns();
+        setTimeout(() => {
+            triggerMonsterTurns();
+        }, 150); // 150ms delay
     }
 
     // Amulet Regeneration & Madness
@@ -594,4 +597,8 @@ export function enterTestChamber() {
     game.controls.debugMode = true;
     const debugWindow = document.getElementById('debug-window');
     if (debugWindow) debugWindow.style.display = 'block';
+    
+    // Double log window height
+    const messageLog = document.getElementById('message-log');
+    if (messageLog) messageLog.style.maxHeight = '500px';
 }

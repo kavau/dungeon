@@ -172,7 +172,7 @@ export function movePlayerBackward() {
     }
 }
 
-// Rotate player by 90 degrees
+// Rotate player by 90 degrees (or 180 if direction is 2)
 export function rotatePlayer(direction) {
     if (!game.player.canMove || game.player.animating) return;
     
@@ -183,13 +183,23 @@ export function rotatePlayer(direction) {
     game.player.startRotation = game.player.rotation.y;
     
     // Update target rotation (0=north, PI/2=west, PI=south, -PI/2=east)
-    game.player.targetRotation = -game.player.facing * Math.PI / 2;
+    // For 180-degree turns, force a full rotation by adding PI to current rotation
+    if (direction === 2) {
+        game.player.targetRotation = game.player.rotation.y + Math.PI;
+        game.player.force180Turn = true;  // Flag to skip shortest-path logic
+        game.player.animationDuration = 0.6;  // Slower for 180-degree turns
+    } else {
+        game.player.targetRotation = -game.player.facing * Math.PI / 2;
+        game.player.force180Turn = false;
+        game.player.animationDuration = 0.3;  // Normal speed for 90-degree turns
+    }
     
     game.player.animating = true;
     game.player.canMove = false;
     game.player.animationProgress = 0;
     
     if (direction === 1) logMessage("You turn right.");
+    else if (direction === 2) logMessage("You turn around.");
     else logMessage("You turn left.");
 }
 
@@ -340,7 +350,8 @@ export function updatePlayer(deltaTime) {
                 game.player.canMove = true;
             }
             
-            game.player.rotation.y = game.player.targetRotation;
+            // Set final rotation to match facing direction
+            game.player.rotation.y = -game.player.facing * Math.PI / 2;
         }
         
         // Smooth easing function (ease-in-out)
@@ -358,11 +369,13 @@ export function updatePlayer(deltaTime) {
         const startRotation = game.player.startRotation;
         const targetRotation = game.player.targetRotation;
         
-        // Calculate the shortest angular distance
+        // Calculate the shortest angular distance (unless it's a forced 180-degree turn)
         let angleDiff = targetRotation - startRotation;
-        // Normalize to [-PI, PI]
-        while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-        while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+        if (!game.player.force180Turn) {
+            // Normalize to [-PI, PI] for shortest path
+            while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+            while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+        }
         
         game.player.rotation.y = startRotation + angleDiff * easedT;
     }

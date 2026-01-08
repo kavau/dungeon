@@ -208,7 +208,11 @@ export function setupControls() {
                 break;
             case 'ArrowDown':
                 e.preventDefault();
-                movePlayerBackward();
+                if (e.shiftKey) {
+                    rotatePlayer(2);  // 180-degree turn
+                } else {
+                    movePlayerBackward();
+                }
                 break;
             case 'ArrowLeft':
                 e.preventDefault();
