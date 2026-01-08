@@ -1287,19 +1287,58 @@ export function createMonsterVisuals(type) {
             const mouth = new THREE.Mesh(mouthGeometry, mouthMaterial);
             mouth.position.set(0, 0.2, 0.3);
             
-            // Fangs
-            const fangGeometry = new THREE.ConeGeometry(0.03, 0.1, 4);
+            // Fangs (teeth) - improved alignment and direction
+            const fangGeometry = new THREE.ConeGeometry(0.03, 0.12, 4);
             const fangMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const fang1 = new THREE.Mesh(fangGeometry, fangMaterial);
-            fang1.position.set(-0.08, 0.15, 0.3);
-            fang1.rotation.x = Math.PI;
-            const fang2 = new THREE.Mesh(fangGeometry, fangMaterial);
-            fang2.position.set(0.08, 0.15, 0.3);
-            fang2.rotation.x = Math.PI;
+            // Small fangs (lid front rim)
+            const numFangs = 5;
+            for (let i = 0; i < numFangs; i++) {
+                const fang = new THREE.Mesh(fangGeometry, fangMaterial);
+                // Arc along the lid rim
+                const t = i / (numFangs - 1);
+                const x = -0.24 + t * 0.48;
+                const z = 0.26;
+                const y = -0.07;
+                fang.position.set(x, y, z);
+                // Point toward mouth center
+                fang.rotation.set(Math.PI * 0.92, 0, (t - 0.5) * 0.3);
+                mimicLid.add(fang);
+            }
+            // Large fangs (top and bottom rows)
+            const bigFangGeometry = new THREE.ConeGeometry(0.06, 0.22, 6);
+            // Top row (lid rim, pointing down)
+            const numTopFangs = 6;
+            for (let i = 0; i < numTopFangs; i++) {
+                const fang = new THREE.Mesh(bigFangGeometry, fangMaterial);
+                // Arc along the lid rim
+                const t = i / (numTopFangs - 1);
+                const x = -0.27 + t * 0.54;
+                const z = 0.23;
+                const y = -0.075;
+                fang.position.set(x, y, z);
+                // Point toward mouth center
+                fang.rotation.set(Math.PI * 0.97, 0, (t - 0.5) * 0.35);
+                mimicLid.add(fang);
+            }
+            // Bottom row (mouth rim, pointing up)
+            const numBottomFangs = 6;
+            for (let i = 0; i < numBottomFangs; i++) {
+                const fang = new THREE.Mesh(bigFangGeometry, fangMaterial);
+                // Arc along the chest base rim
+                const t = i / (numBottomFangs - 1);
+                const x = -0.27 + t * 0.54;
+                const z = 0.23;
+                const y = 0.025;
+                fang.position.set(x, y, z);
+                // Point toward mouth center
+                fang.rotation.set(-Math.PI * 0.97, 0, (t - 0.5) * 0.35);
+                mouth.add(fang);
+            }
+            // Move eyes to above the lid, not in the maw
+            mimicEye1.position.set(-0.13, 0.48, 0.18);
+            mimicEye2.position.set(0.13, 0.48, 0.18);
             
             mouthGroup.add(mouth);
-            mouthGroup.add(fang1);
-            mouthGroup.add(fang2);
             mouthGroup.visible = false;  // Hidden by default
             
             body.add(mimicBody);
@@ -1313,6 +1352,16 @@ export function createMonsterVisuals(type) {
             body.userData.mimicEye1 = mimicEye1;
             body.userData.mimicEye2 = mimicEye2;
             body.userData.mimicMouth = mouthGroup;
+            body.userData.mimicLid = mimicLid;
+            // Store references to all fangs for aggro visibility
+            body.userData.mimicTopFangs = [];
+            body.userData.mimicBottomFangs = [];
+            mimicLid.children.forEach(child => {
+                if (child.geometry && child.geometry.type === 'ConeGeometry') body.userData.mimicTopFangs.push(child);
+            });
+            mouth.children.forEach(child => {
+                if (child.geometry && child.geometry.type === 'ConeGeometry') body.userData.mimicBottomFangs.push(child);
+            });
             
             monsterGroup.position.y = 0.3;
             speed = 0.6;
@@ -1548,22 +1597,16 @@ export function createMonsterVisuals(type) {
                 new THREE.SphereGeometry(0.35, 12, 12),
                 trollMaterial
             );
-            trollHead.position.set(-0.15, 1.0, 0.2);
-            trollHead.scale.set(1.2, 1, 1.3);
+            trollHead.position.set(-0.15, 1.05, 0);
             body.add(trollHead);
             
-            // Huge nose
-            const trollNose = new THREE.Mesh(
-                new THREE.ConeGeometry(0.12, 0.2, 8),
-                new THREE.MeshStandardMaterial({ color: 0x667755 })
-            );
-            trollNose.position.set(-0.15, 0.95, 0.4);
-            trollNose.rotation.x = Math.PI / 2;
-            body.add(trollNose);
-            
-            // Small eyes
-            const trollEyeGeometry = new THREE.SphereGeometry(0.04, 8, 8);
-            const trollEyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            // Eyes (bulging and red)
+            const trollEyeGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+            const trollEyeMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff0000,
+                emissive: 0xff0000,
+                emissiveIntensity: 0.7
+            });
             const trollLeftEye = new THREE.Mesh(trollEyeGeometry, trollEyeMaterial);
             trollLeftEye.position.set(-0.25, 1.05, 0.38);
             const trollRightEye = new THREE.Mesh(trollEyeGeometry, trollEyeMaterial);

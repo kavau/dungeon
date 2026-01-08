@@ -407,6 +407,24 @@ export function updateMonsters(deltaTime) {
             }
         }
         
+        // Animate mimic lid for aggro state (robust reference)
+        if (monster.type === MONSTER_TYPES.MIMIC && monster.body.userData && monster.body.userData.mimicLid) {
+            const mimicLid = monster.body.userData.mimicLid;
+            const targetLidAngle = monster.isAggro ? -Math.PI / 3 : 0; // Open 60 degrees when aggro
+            mimicLid.rotation.x += (targetLidAngle - mimicLid.rotation.x) * 0.2;
+        }
+        
+        // Toggle mimic fangs visibility based on aggro state
+        if (monster.type === MONSTER_TYPES.MIMIC && monster.body.userData) {
+            const showFangs = monster.isAggro;
+            if (monster.body.userData.mimicTopFangs) {
+                monster.body.userData.mimicTopFangs.forEach(fang => fang.visible = showFangs);
+            }
+            if (monster.body.userData.mimicBottomFangs) {
+                monster.body.userData.mimicBottomFangs.forEach(fang => fang.visible = showFangs);
+            }
+        }
+        
         // Aggro monsters face the player
         if (monster.isAggro && !monster.animating) {
             const playerGridX = Math.floor(game.player.position.x / game.dungeon.cellSize);
@@ -771,3 +789,4 @@ export function triggerMonsterTurns() {
         monster.canAct = true;
     }
 }
+
