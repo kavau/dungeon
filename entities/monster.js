@@ -350,11 +350,25 @@ export function updateMonsters(deltaTime) {
         
         // AI decision making
         if (!monster.animating) {
-            monster.timeSinceLastMove += deltaTime;
             
-            if (monster.timeSinceLastMove >= monster.nextMoveTime) {
-                monster.timeSinceLastMove = 0;
+            // Check Turn Mode
+            const isTurnBased = game.settings && game.settings.turnMode === 'turnbased';
+            const canAct = isTurnBased ? monster.canAct : true;
+
+            if (isTurnBased) {
+                // In turn-based, only update if flagged to act
+                if (!canAct) continue; 
+            } else {
+                // In real-time, use time accumulators
+                monster.timeSinceLastMove += deltaTime;
+                if (monster.timeSinceLastMove < monster.nextMoveTime) continue;
                 
+                monster.timeSinceLastMove = 0;
+            }
+            
+            // --- ACTION START --- (Reset flag first thing for turn based)
+            if (isTurnBased) monster.canAct = false;
+
                 // Check distance to player
                 const playerGridX = Math.floor(game.player.position.x / game.dungeon.cellSize);
                 const playerGridZ = Math.floor(game.player.position.z / game.dungeon.cellSize);
@@ -376,7 +390,9 @@ export function updateMonsters(deltaTime) {
                 }
                 
                 // Set next move time based on aggro state (faster if aggro)
-                monster.nextMoveTime = monster.isAggro ? (Math.random() * 1 + 0.5) : (Math.random() * 4 + 2);
+                if (!isTurnBased) {
+                    monster.nextMoveTime = monster.isAggro ? (Math.random() * 1 + 0.5) : (Math.random() * 4 + 2);
+                }
                 
                 // Try to attack player if adjacent
                 if (game.player.health > 0 && monsterAttackPlayer(monster)) {
@@ -437,7 +453,6 @@ export function updateMonsters(deltaTime) {
                         monster.facing = (monster.facing + 1) % 4;
                     }
                 }
-            }
         }
     }
 }
@@ -626,4 +641,10 @@ export function spawnSingleMonster() {
         }
     }
     return false;
+}
+
+export function triggerMonsterTurns() {
+    for (let monster of game.monsters) {
+        monster.canAct = true;
+    }
 }

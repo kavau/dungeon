@@ -1,7 +1,7 @@
 import { game, dungeonMap } from './state.js';
 import { logMessage, updateLevelName, updateHealthDisplay, updateMadnessDisplay } from './ui.js';
 import { updateAmuletEffects } from './player.js';
-import { spawnSingleMonster, spawnMonsters, createMonster, MONSTER_TYPES } from './entities/monster.js';
+import { spawnSingleMonster, spawnMonsters, createMonster, MONSTER_TYPES, triggerMonsterTurns } from './entities/monster.js';
 import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder } from './dungeon.js';
 import { generateTestChamber } from './testChamber.js';
 import { spawnTreasures, createTreasure, TREASURE_TYPES } from './entities/items.js';
@@ -254,8 +254,31 @@ export function checkCollision(position) {
     return null;
 }
 
+
+// Auto-wait timer for Turn-Based Mode
+let autoWaitTimer = null;
+
+function resetAutoWait() {
+    if (autoWaitTimer) clearTimeout(autoWaitTimer);
+    
+    if (game.settings && game.settings.turnMode === 'turnbased' && game.started && !game.paused && !game.showingLevelScreen) {
+        autoWaitTimer = setTimeout(() => {
+            logMessage("You wait...", "normal");
+            advanceTurn();
+        }, 4000); // 4 seconds
+    }
+}
+
 // Update player movement
 export function advanceTurn() {
+    // Reset Auto-wait on any turn action
+    resetAutoWait();
+
+    // Trigger Monster Turns if Turn-Based
+    if (game.settings && game.settings.turnMode === 'turnbased') {
+        triggerMonsterTurns();
+    }
+
     // Amulet Regeneration & Madness
     if (game.player.amuletActive) {
         if (game.player.health < game.player.maxHealth) {

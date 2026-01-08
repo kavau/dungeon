@@ -617,12 +617,68 @@ export function initSettings() {
 
     // Initialize game settings object
     game.lightSettings = {
+        // [Existing props]
         ambient: { intensity: 0.0, enabled: true },
         playerTorch: { intensity: 3.0, distance: 24, enabled: true },
         firefly: { intensity: 2.5, distance: 8.0, enabled: true },
         mushrooms: { intensity: 1.5, distance: 10, enabled: true },
         moss: { intensity: 0.5, distance: 5.0, enabled: true }
     };
+    
+    // Initialize Turn Mode Setting
+    game.settings = game.settings || {};
+    game.settings.turnMode = 'turnbased'; // Default to turn-based
+
+    // Add Turn Mode UI dynamically
+    const generalSettingsDiv = document.createElement('div');
+    generalSettingsDiv.className = 'settings-row';
+    generalSettingsDiv.style.marginBottom = '15px';
+    generalSettingsDiv.innerHTML = `
+        <div class="slider-container compact" style="width: 100%; flex-direction: column; align-items: flex-start;">
+            <label style="margin-bottom: 5px; color: #ffeb3b;">Turn Mode</label>
+            <div class="radio-group">
+                <label class="radio-label">
+                    <input type="radio" name="turn-mode" value="realtime">
+                    <span class="radio-checkmark"></span>
+                    Real-Time
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="turn-mode" value="turnbased">
+                    <span class="radio-checkmark"></span>
+                    Turn-Based
+                </label>
+            </div>
+        </div>
+    `;
+    
+    // Insert BEFORE Visual Settings header
+    const visualHeader = menu.querySelector('h2');
+    if (visualHeader) {
+        // Create Gameplay Settings Header
+        const gameplayHeader = document.createElement('h2');
+        gameplayHeader.textContent = "Gameplay Settings";
+        
+        // Insert Header then Content BEFORE the Visual Settings header
+        menu.insertBefore(gameplayHeader, visualHeader);
+        menu.insertBefore(generalSettingsDiv, visualHeader);
+    }
+
+    const modeRadios = document.getElementsByName('turn-mode');
+    for(const radio of modeRadios) {
+        if (radio.value === game.settings.turnMode) {
+            radio.checked = true;
+        }
+        radio.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                game.settings.turnMode = e.target.value;
+                console.log("Turn Mode changed to:", game.settings.turnMode);
+                // Defocus
+                e.target.blur();
+            }
+        });
+    }
+
+    // Set initial values from saved state (if we had saving)
     
     game.exposureSettings = {
         auto: true,
