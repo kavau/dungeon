@@ -21,7 +21,7 @@ import {
     toggleManual,
     toggleJournal
 } from './ui.js';
-import { teleportToLevel } from './gameLoop.js';
+import { teleportToLevel, enterTestChamber } from './gameLoop.js';
 
 export function setupControls() {
     // Keyboard controls - discrete movement
@@ -29,6 +29,12 @@ export function setupControls() {
         // Handle win screen
         if (game.won) {
             location.reload();
+            return;
+        }
+
+        // Test Chamber (Ctrl + Alt + X)
+        if (e.ctrlKey && e.altKey && (e.code === 'KeyX')) {
+            enterTestChamber();
             return;
         }
 
@@ -254,7 +260,7 @@ export function setupControls() {
             }
         }
         if (e.key === 'd' || e.key === 'D') {
-            if (game.cheatMode) {
+            if (game.cheatMode || game.isTestChamber) {
                 game.controls.debugMode = !game.controls.debugMode;
                 const debugWindow = document.getElementById('debug-window');
                 if (debugWindow) {

@@ -367,7 +367,12 @@ export function updateMonsters(deltaTime) {
                 // Chance to become aggro if close
                 else if (!monster.isAggro && distToPlayer <= 5) {
                     // 20% chance to notice player each move cycle if close
-                    if (Math.random() < 0.2) monster.isAggro = true;
+                    const detected = Math.random() < 0.2;
+                    if (game.isTestChamber) {
+                        const mName = getMonsterName(monster.type);
+                        console.log(`[${mName}] Aggro Check: dist=${distToPlayer}, detected=${detected}`);
+                    }
+                    if (detected) monster.isAggro = true;
                 }
                 
                 // Set next move time based on aggro state (faster if aggro)
@@ -380,6 +385,9 @@ export function updateMonsters(deltaTime) {
                 }
                 
                 if (monster.isAggro) {
+                    if (game.isTestChamber) {
+                             console.log(`[${getMonsterName(monster.type)}] Chasing Player`);
+                    }
                     // Move towards player
                     const dx = playerGridX - monster.gridX;
                     const dy = playerGridZ - monster.gridY;
@@ -412,6 +420,9 @@ export function updateMonsters(deltaTime) {
                         tryMoveMonster(monster);
                     }
                 } else {
+                    if (game.isTestChamber) {
+                         console.log(`[${getMonsterName(monster.type)}] Wandering random`);
+                    }
                     // Random movement decision
                     const action = Math.random();
                     

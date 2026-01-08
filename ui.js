@@ -313,6 +313,7 @@ export function updateDebugWindow() {
                 `dx=${dx.toFixed(1)}, dz=${dz.toFixed(1)}, ` +
                 `dist=${distance.toFixed(1)}, ` +
                 `diff=${angleDiff.toFixed(2)}, ` +
+                `aggro=${monster.isAggro ? 'YES' : 'NO'}, ` +
                 `[${visInfo.reason}]</div>`;
             if (visInfo.visible) monsterCount++;
         }

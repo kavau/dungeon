@@ -3,12 +3,39 @@ import { logMessage, updateLevelName, updateHealthDisplay, updateMadnessDisplay 
 import { updateAmuletEffects } from './player.js';
 import { spawnSingleMonster, spawnMonsters, createMonster, MONSTER_TYPES } from './entities/monster.js';
 import { generateDungeon, spawnDoors, createStartingInscription, generateProceduralMap, clearDungeon, spawnLadder } from './dungeon.js';
+import { generateTestChamber } from './testChamber.js';
 import { spawnTreasures, createTreasure, TREASURE_TYPES } from './entities/items.js';
 import { spawnDecorations, spawnFireflies, createDecoration, DECORATION_TYPES } from './entities/decoration.js';
 import { spawnWaterCreatures } from './entities/waterCreatures.js';
 import { LEVEL_CONFIG } from './levelConfig.js';
 
 export function setupLevel() {
+    if (game.isTestChamber) {
+        // Test Chamber Override
+        game.dungeon.level = -1; // Special ID
+        updateLevelName("TEST CHAMBER");
+        
+        const cellSize = game.dungeon.cellSize;
+        // Position at (2,2)
+        const px = 2;
+        const py = 2;
+        
+        game.player.position.x = px * cellSize + cellSize / 2;
+        game.player.position.z = py * cellSize + cellSize / 2;
+        
+        // Face East
+        game.player.facing = 1;
+        game.player.rotation.y = -Math.PI / 2;
+        
+        game.player.targetPosition.copy(game.player.position);
+        game.player.startRotation = game.player.rotation.y;
+        game.player.targetRotation = game.player.rotation.y;
+        game.camera.position.copy(game.player.position);
+        
+        // Skip spawns
+        return;
+    }
+
     // Set player starting position (find first open space)
     const cellSize = game.dungeon.cellSize;
     const level = game.dungeon.level || 1;
@@ -520,4 +547,28 @@ function spawnSpectralEntity() {
         }
         attempts++;
     }
+}
+
+export function enterTestChamber() {
+    console.log("Entering Test Chamber Sequence");
+    game.isTestChamber = true;
+    
+    // Clear current level
+    clearDungeon();
+    
+    // Generate Test Chamber
+    generateTestChamber();
+    generateDungeon();
+    
+    setupLevel();
+    
+    // Ensure game is started
+    game.started = true;
+    const introScreen = document.getElementById('intro-screen');
+    if (introScreen) introScreen.style.display = 'none';
+
+    // Enable Debug Mode
+    game.controls.debugMode = true;
+    const debugWindow = document.getElementById('debug-window');
+    if (debugWindow) debugWindow.style.display = 'block';
 }

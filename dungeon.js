@@ -797,3 +797,5 @@ export function spawnLadder() {
         console.log(`Spawned ladder at (${x}, ${y}), dist: ${Math.sqrt(maxDist).toFixed(1)}`);
     }
 }
+
+
