@@ -2,7 +2,7 @@ import { game, dungeonMap } from '../state.js';
 import { logMessage, updateHealthDisplay, gameOver } from '../ui.js';
 import { createTorch } from './items.js';
 import { createBloodStain } from '../effects.js';
-import { MONSTER_TYPES } from './monsterTypes.js';
+import { MONSTER_TYPES, MONSTER_AGGRESSIVENESS } from './monsterTypes.js';
 import { createMonsterVisuals } from '../visuals/monsterRenderer.js';
 import { getFloorHeight } from '../visuals/dungeonRenderer.js';
 import { LEVEL_CONFIG } from '../levelConfig.js';
@@ -436,11 +436,20 @@ export function updateMonsters(deltaTime) {
                 }
                 // Chance to become aggro if close
                 else if (!monster.isAggro && distToPlayer <= 5) {
-                    // 20% chance to notice player each move cycle if close
-                    const detected = Math.random() < 0.2;
+                    // Calculate distance-based probability (closer = higher chance)
+                    // At distance 1: 100%, distance 5: ~20%
+                    const distanceFactor = (6 - distToPlayer) / 5; // 1.0 at dist 1, 0.2 at dist 5
+                    
+                    // Get monster aggressiveness (default 1.0 if not defined)
+                    const aggressiveness = MONSTER_AGGRESSIVENESS[monster.type] || 1.0;
+                    
+                    // Combined probability: distance * aggressiveness * base
+                    const aggroProbability = distanceFactor * aggressiveness * 0.2;
+                    
+                    const detected = Math.random() < aggroProbability;
                     if (game.isTestChamber) {
                         const mName = getMonsterName(monster.type);
-                        logMessage(`[${mName}] Check: dist=${distToPlayer} saw=${detected}`, "normal");
+                        logMessage(`[${mName}] Check: dist=${distToPlayer} prob=${(aggroProbability*100).toFixed(1)}% saw=${detected}`, "normal");
                     }
                     if (detected) monster.isAggro = true;
                 }
