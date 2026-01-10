@@ -1577,109 +1577,113 @@ export function createMonsterVisuals(type) {
         case MONSTER_TYPES.TROLL: {
             // Troll - large, hunched, regenerating creature
             body = new THREE.Group();
-            
+
             const trollMaterial = new THREE.MeshStandardMaterial({ 
                 color: 0x556644,
                 roughness: 0.95
             });
-            
+
+            // Troll scale factor
+            const trollScale = 2.1;
+
             // Massive hunched body
             const trollBody = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.5, 0.55, 1.4, 10),
+                new THREE.CylinderGeometry(0.5 * trollScale, 0.55 * trollScale, 1.4 * trollScale, 10),
                 trollMaterial
             );
-            trollBody.position.y = 0.3;
+            trollBody.position.y = 0.3 * trollScale;
             trollBody.rotation.z = Math.PI / 12;
             body.add(trollBody);
-            
+
             // Large head
             const trollHead = new THREE.Mesh(
-                new THREE.SphereGeometry(0.35, 12, 12),
+                new THREE.SphereGeometry(0.35 * trollScale, 12, 12),
                 trollMaterial
             );
-            trollHead.position.set(-0.15, 1.05, 0);
+            trollHead.position.set(-0.15 * trollScale, 1.05 * trollScale, 0);
             body.add(trollHead);
-            
+
             // Eyes (bulging and red)
-            const trollEyeGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+            const trollEyeGeometry = new THREE.SphereGeometry(0.08 * trollScale, 8, 8);
             const trollEyeMaterial = new THREE.MeshStandardMaterial({ 
                 color: 0xff0000,
                 emissive: 0xff0000,
                 emissiveIntensity: 0.7
             });
             const trollLeftEye = new THREE.Mesh(trollEyeGeometry, trollEyeMaterial);
-            trollLeftEye.position.set(-0.25, 1.05, 0.38);
+            trollLeftEye.position.set(-0.25 * trollScale, 1.05 * trollScale, 0.38 * trollScale);
             const trollRightEye = new THREE.Mesh(trollEyeGeometry, trollEyeMaterial);
-            trollRightEye.position.set(-0.05, 1.05, 0.38);
+            trollRightEye.position.set(-0.05 * trollScale, 1.05 * trollScale, 0.38 * trollScale);
             body.add(trollLeftEye);
             body.add(trollRightEye);
-            
+
             // Large mouth with teeth
             const mouth = new THREE.Mesh(
-                new THREE.BoxGeometry(0.25, 0.08, 0.1),
+                new THREE.BoxGeometry(0.25 * trollScale, 0.08 * trollScale, 0.1 * trollScale),
                 new THREE.MeshStandardMaterial({ color: 0x000000 })
             );
-            mouth.position.set(-0.15, 0.85, 0.38);
+            mouth.position.set(-0.15 * trollScale, 0.85 * trollScale, 0.38 * trollScale);
             body.add(mouth);
-            
+
             // Tusks
             const tuskMaterial = new THREE.MeshStandardMaterial({ color: 0xffffdd });
             for (let i = 0; i < 4; i++) {
                 const tusk = new THREE.Mesh(
-                    new THREE.BoxGeometry(0.04, 0.1, 0.04),
+                    new THREE.BoxGeometry(0.04 * trollScale, 0.1 * trollScale, 0.04 * trollScale),
                     tuskMaterial
                 );
-                tusk.position.set(-0.22 + i * 0.08, 0.9, 0.42);
+                tusk.position.set((-0.22 + i * 0.08) * trollScale, 0.9 * trollScale, 0.42 * trollScale);
                 body.add(tusk);
             }
-            
+
             // Long arms
             const trollArmMaterial = new THREE.MeshStandardMaterial({ color: 0x667755, roughness: 0.95 });
             const trollLeftArm = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.15, 0.12, 0.9, 10),
+                new THREE.CylinderGeometry(0.15 * trollScale, 0.12 * trollScale, 0.9 * trollScale, 10),
                 trollArmMaterial
             );
-            trollLeftArm.position.set(-0.6, 0.3, 0);
+            trollLeftArm.position.set(-0.6 * trollScale, 0.3 * trollScale, 0);
             trollLeftArm.rotation.z = Math.PI / 4;
             body.add(trollLeftArm);
-            
+
             const trollRightArm = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.15, 0.12, 0.9, 10),
+                new THREE.CylinderGeometry(0.15 * trollScale, 0.12 * trollScale, 0.9 * trollScale, 10),
                 trollArmMaterial
             );
-            trollRightArm.position.set(0.6, 0.3, 0);
+            trollRightArm.position.set(0.6 * trollScale, 0.3 * trollScale, 0);
             trollRightArm.rotation.z = -Math.PI / 4;
             body.add(trollRightArm);
-            
+
             // Huge hands
-            const trollHandGeometry = new THREE.SphereGeometry(0.18, 10, 10);
+            const trollHandGeometry = new THREE.SphereGeometry(0.18 * trollScale, 10, 10);
             const trollLeftHand = new THREE.Mesh(trollHandGeometry, trollArmMaterial);
-            trollLeftHand.position.set(-0.9, -0.1, 0);
+            trollLeftHand.position.set(-0.9 * trollScale, -0.1 * trollScale, 0);
             trollLeftHand.scale.set(1.2, 0.8, 1.5);
             const trollRightHand = new THREE.Mesh(trollHandGeometry, trollArmMaterial);
-            trollRightHand.position.set(0.9, -0.1, 0);
+            trollRightHand.position.set(0.9 * trollScale, -0.1 * trollScale, 0);
             trollRightHand.scale.set(1.2, 0.8, 1.5);
             body.add(trollLeftHand);
             body.add(trollRightHand);
-            
+
             // Thick legs
             const trollLegMaterial = new THREE.MeshStandardMaterial({ color: 0x445533, roughness: 0.95 });
             const trollLeftLeg = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.18, 0.16, 0.6, 10),
+                new THREE.CylinderGeometry(0.18 * trollScale, 0.16 * trollScale, 0.6 * trollScale, 10),
                 trollLegMaterial
             );
-            trollLeftLeg.position.set(-0.2, -0.6, 0);
+            trollLeftLeg.position.set(-0.2 * trollScale, -0.6 * trollScale, 0);
             const trollRightLeg = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.18, 0.16, 0.6, 10),
+                new THREE.CylinderGeometry(0.18 * trollScale, 0.16 * trollScale, 0.6 * trollScale, 10),
                 trollLegMaterial
             );
-            trollRightLeg.position.set(0.2, -0.6, 0);
+            trollRightLeg.position.set(0.2 * trollScale, -0.6 * trollScale, 0);
             body.add(trollLeftLeg);
             body.add(trollRightLeg);
-            
-            monsterGroup.position.y = 0.9;
-            speed = 0.65;
-            moveChance = 0.5;
+
+            // Raise the troll so feet are on the ground
+            monsterGroup.position.y = 0.9 * trollScale;
+            speed = 0.7;
+            moveChance = 0.55;
             break;
         }
             
@@ -1855,7 +1859,7 @@ export function createMonsterVisuals(type) {
         case MONSTER_TYPES.SERPENT: {
             // Giant Serpent - long coiled snake
             body = new THREE.Group();
-            
+
             const serpentMaterial = new THREE.MeshStandardMaterial({ 
                 color: 0x225511,
                 roughness: 0.6,
@@ -1865,84 +1869,94 @@ export function createMonsterVisuals(type) {
                 color: 0x336622,
                 roughness: 0.5
             });
-            
+
+            // Make the serpent bigger
+            const serpentScale = 1.7;
+
             // Serpent body - coiled segments
             const segments = 12;
             for (let i = 0; i < segments; i++) {
                 const angle = (i / segments) * Math.PI * 2 * 1.5;
-                const radius = 0.3 + (i / segments) * 0.2;
+                const radius = (0.3 + (i / segments) * 0.2) * serpentScale;
                 const segment = new THREE.Mesh(
-                    new THREE.SphereGeometry(0.12 - (i * 0.006), 10, 10),
+                    new THREE.SphereGeometry((0.12 - (i * 0.006)) * serpentScale, 10, 10),
                     i % 2 === 0 ? serpentMaterial : scaleMaterial
                 );
                 segment.position.set(
                     Math.cos(angle) * radius,
-                    0.1 + (i / segments) * 0.3,
+                    0.01 + (i / segments) * 0.3 * serpentScale,
                     Math.sin(angle) * radius
                 );
                 segment.scale.set(1, 0.8, 1.2);
                 body.add(segment);
             }
-            
+
             // Head
             const serpentHead = new THREE.Mesh(
-                new THREE.SphereGeometry(0.18, 12, 12),
+                new THREE.SphereGeometry(0.18 * serpentScale, 12, 12),
                 serpentMaterial
             );
-            serpentHead.position.set(0.4, 0.45, 0);
+            serpentHead.position.set(0.4 * serpentScale, 0.18 * serpentScale, 0);
             serpentHead.scale.set(1.3, 1, 1.5);
             body.add(serpentHead);
-            
+
             // Snout
             const snout = new THREE.Mesh(
-                new THREE.ConeGeometry(0.1, 0.15, 8),
+                new THREE.ConeGeometry(0.1 * serpentScale, 0.15 * serpentScale, 8),
                 new THREE.MeshStandardMaterial({ color: 0x113300 })
             );
             snout.rotation.z = -Math.PI / 2;
-            snout.position.set(0.52, 0.45, 0);
+            snout.position.set(0.52 * serpentScale, 0.18 * serpentScale, 0);
             body.add(snout);
-            
+
             // Fangs
             const fangMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
             const serpentLeftFang = new THREE.Mesh(
-                new THREE.ConeGeometry(0.02, 0.12, 6),
+                new THREE.ConeGeometry(0.02 * serpentScale, 0.12 * serpentScale, 6),
                 fangMaterial
             );
-            serpentLeftFang.position.set(0.55, 0.42, -0.06);
+            serpentLeftFang.position.set(0.55 * serpentScale, 0.15 * serpentScale, -0.06 * serpentScale);
             serpentLeftFang.rotation.x = Math.PI;
             const serpentRightFang = new THREE.Mesh(
-                new THREE.ConeGeometry(0.02, 0.12, 6),
+                new THREE.ConeGeometry(0.02 * serpentScale, 0.12 * serpentScale, 6),
                 fangMaterial
             );
-            serpentRightFang.position.set(0.55, 0.42, 0.06);
+            serpentRightFang.position.set(0.55 * serpentScale, 0.15 * serpentScale, 0.06 * serpentScale);
             serpentRightFang.rotation.x = Math.PI;
             body.add(serpentLeftFang);
             body.add(serpentRightFang);
-            
+
             // Eyes
-            const serpentEyeGeometry = new THREE.SphereGeometry(0.04, 8, 8);
+            const serpentEyeGeometry = new THREE.SphereGeometry(0.04 * serpentScale, 8, 8);
             const serpentEyeMaterial = new THREE.MeshStandardMaterial({ 
                 color: 0xffff00,
                 emissive: 0xaaaa00,
                 emissiveIntensity: 0.5
             });
             const serpentLeftEye = new THREE.Mesh(serpentEyeGeometry, serpentEyeMaterial);
-            serpentLeftEye.position.set(0.48, 0.52, -0.12);
+            serpentLeftEye.position.set(0.48 * serpentScale, 0.22 * serpentScale, -0.12 * serpentScale);
             const serpentRightEye = new THREE.Mesh(serpentEyeGeometry, serpentEyeMaterial);
-            serpentRightEye.position.set(0.48, 0.52, 0.12);
+            serpentRightEye.position.set(0.48 * serpentScale, 0.22 * serpentScale, 0.12 * serpentScale);
             body.add(serpentLeftEye);
             body.add(serpentRightEye);
-            
+
             // Forked tongue
             const tongue = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.01, 0.01, 0.25, 4),
+                new THREE.CylinderGeometry(0.01 * serpentScale, 0.01 * serpentScale, 0.25 * serpentScale, 4),
                 new THREE.MeshStandardMaterial({ color: 0xff0000 })
             );
             tongue.rotation.z = -Math.PI / 2;
-            tongue.position.set(0.65, 0.45, 0);
+            tongue.position.set(0.65 * serpentScale, 0.18 * serpentScale, 0);
             body.add(tongue);
-            
-            monsterGroup.position.y = 0.2;
+
+            // Lower the serpent to sit flush with the ground
+            // Find the minimum y among all body children
+            let minY = Infinity;
+            body.children.forEach(child => {
+                if (child.position && child.position.y < minY) minY = child.position.y;
+            });
+            // Offset so the lowest part is at y=0
+            monsterGroup.position.y = -minY;
             speed = 0.45;
             moveChance = 0.65;
             break;

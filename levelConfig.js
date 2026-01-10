@@ -207,7 +207,13 @@ export const LEVEL_CONFIG = {
             ambientIntensity: 0.3
         },
         monsters: [
-            'bat', 'salamander', 'troll', 'mushroom', 'scarab', 'cube'
+            // Each entry: [type, spawnRate]
+            ['salamander', 0.26],
+            ['troll', 0.07],
+            ['mushroom', 0.12],
+            ['imp', 0.09],
+            ['serpent', 0.07],
+            ['goblin', 0.39]
         ],
         items: {
             chest: 0.05,

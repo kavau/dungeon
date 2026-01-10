@@ -103,22 +103,24 @@ export function getMonsterStats(difficulty) {
 
 export function createMonster(gridX, gridY, type) {
     const cellSize = game.dungeon.cellSize;
-    
-    const { mesh, body, speed, moveChance } = createMonsterVisuals(type);
+    // If type is an array (from weighted spawn), extract the string
+    const monsterType = Array.isArray(type) ? type[0] : type;
+
+    const { mesh, body, speed, moveChance } = createMonsterVisuals(monsterType);
     const monsterGroup = mesh;
-    
+
     // Set position
     monsterGroup.position.x = gridX * cellSize + cellSize / 2;
     monsterGroup.position.z = gridY * cellSize + cellSize / 2;
-    
+
     // Adjust height for 3D floor
     monsterGroup.position.y = getFloorHeight(monsterGroup.position.x, monsterGroup.position.z, dungeonMap);
-    
+
     game.scene.add(monsterGroup);
 
     // Monster AI state
     const monster = {
-        type: type,
+        type: monsterType,
         mesh: monsterGroup,
         body: body,
         gridX: gridX,
@@ -137,17 +139,17 @@ export function createMonster(gridX, gridY, type) {
         attackPower: 10,
         difficulty: 5,
         isAggro: false,
-        hasTorch: (type === MONSTER_TYPES.GOBLIN || type === MONSTER_TYPES.BANDIT || type === MONSTER_TYPES.ORC || type === MONSTER_TYPES.SKELETON || type === MONSTER_TYPES.CULTIST || type === MONSTER_TYPES.MINER)
+        hasTorch: (monsterType === MONSTER_TYPES.GOBLIN || monsterType === MONSTER_TYPES.BANDIT || monsterType === MONSTER_TYPES.ORC || monsterType === MONSTER_TYPES.SKELETON || monsterType === MONSTER_TYPES.CULTIST || monsterType === MONSTER_TYPES.MINER)
     };
-    
+
     // Get difficulty-based stats and update monster
-    const difficulty = getMonsterDifficulty(type);
+    const difficulty = getMonsterDifficulty(monsterType);
     const stats = getMonsterStats(difficulty);
     monster.health = stats.health;
     monster.maxHealth = stats.maxHealth;
     monster.attackPower = stats.attackPower;
     monster.difficulty = difficulty;
-    
+
     game.monsters.push(monster);
 }
 
@@ -442,7 +444,13 @@ export function updateMonsters(deltaTime) {
         
         // AI decision making
         if (!monster.animating) {
-            
+            // Prevent aggro in test chamber
+            if (game.isTestChamber) {
+                monster.isAggro = false;
+                // Only allow wandering, block aggro/attack logic below
+                // (fall through to wandering logic at the end of this block)
+            }
+
             // Check Turn Mode
             const isTurnBased = game.settings && game.settings.turnMode === 'turnbased';
             const canAct = isTurnBased ? monster.canAct : true;
@@ -457,129 +465,28 @@ export function updateMonsters(deltaTime) {
                 
                 monster.timeSinceLastMove = 0;
             }
-            
+
             // --- ACTION START --- (Reset flag first thing for turn based)
             if (isTurnBased) monster.canAct = false;
 
-                // Check distance to player (weighted distance where diagonals count as 1.5)
-                const playerGridX = Math.floor(game.player.position.x / game.dungeon.cellSize);
-                const playerGridZ = Math.floor(game.player.position.z / game.dungeon.cellSize);
-                const dx = Math.abs(monster.gridX - playerGridX);
-                const dy = Math.abs(monster.gridY - playerGridZ);
-                // Diagonal-friendly distance: orthogonal=1, diagonal=1.5, knight's move=2.5
-                const distToPlayer = Math.max(dx, dy) + 0.5 * Math.min(dx, dy);
-                
-                // If player is dead, lose aggro
-                if (game.player.health <= 0) {
-                    monster.isAggro = false;
+            // If not aggro, allow wandering (including in test chamber)
+            if (!monster.isAggro) {
+                if (game.isTestChamber) {
+                    logMessage(`[${getMonsterName(monster.type)}] Wandering`, "normal");
                 }
-                // Chance to become aggro if close
-                else if (!monster.isAggro) {
-                    // Mimics only detect at radius 1.5, others at radius 5
-                    const detectionRadius = monster.type === MONSTER_TYPES.MIMIC ? 1.5 : 5;
-                    
-                    if (distToPlayer <= detectionRadius) {
-                        // Calculate distance-based probability (closer = higher chance)
-                        const maxDist = detectionRadius;
-                        const distanceFactor = (maxDist + 1 - distToPlayer) / maxDist;
-                        
-                        // Get monster aggressiveness (default 1.0 if not defined)
-                        const aggressiveness = MONSTER_AGGRESSIVENESS[monster.type] || 1.0;
-                        
-                        // Combined probability: distance * aggressiveness * base
-                        const aggroProbability = distanceFactor * aggressiveness * 0.2;
-                        
-                        const detected = Math.random() < aggroProbability;
-                        if (game.isTestChamber) {
-                            const mName = getMonsterName(monster.type);
-                            logMessage(`[${mName}] Check: dist=${distToPlayer} prob=${(aggroProbability*100).toFixed(1)}% saw=${detected}`, "normal");
-                        }
-                        if (detected) monster.isAggro = true;
-                    }
-                }
-                
-                // Set next move time based on aggro state (faster if aggro)
-                if (!isTurnBased) {
-                    monster.nextMoveTime = monster.isAggro ? (Math.random() * 1 + 0.5) : (Math.random() * 4 + 2);
-                }
-                
-                // Try to attack player if adjacent
-                if (game.player.health > 0 && monsterAttackPlayer(monster)) {
-                    // Attack successful, don't move
-                    continue;
-                }
-                
-                if (monster.isAggro) {
-                    if (game.isTestChamber) {
-                             logMessage(`[${getMonsterName(monster.type)}] Chasing!`, "combat");
-                    }
-                    // Move towards player
-                    const dx = playerGridX - monster.gridX;
-                    const dy = playerGridZ - monster.gridY;
-                    
-                    // Determine best direction - prefer larger absolute distance
-                    let bestFacing = -1;
-                    let secondaryFacing = -1;
-                    
-                    if (Math.abs(dx) > Math.abs(dy)) {
-                        // Horizontal distance is greater
-                        if (dx > 0) bestFacing = 1; // East
-                        else bestFacing = 3; // West
-                        
-                        // Secondary direction
-                        if (dy > 0) secondaryFacing = 2; // South
-                        else if (dy < 0) secondaryFacing = 0; // North
-                    } else if (Math.abs(dy) > Math.abs(dx)) {
-                        // Vertical distance is greater
-                        if (dy > 0) bestFacing = 2; // South
-                        else bestFacing = 0; // North
-                        
-                        // Secondary direction
-                        if (dx > 0) secondaryFacing = 1; // East
-                        else if (dx < 0) secondaryFacing = 3; // West
-                    } else {
-                        // Distances are equal, pick randomly but consistently
-                        if (Math.random() < 0.5) {
-                            if (dx > 0) bestFacing = 1;
-                            else bestFacing = 3;
-                            
-                            if (dy > 0) secondaryFacing = 2;
-                            else if (dy < 0) secondaryFacing = 0;
-                        } else {
-                            if (dy > 0) bestFacing = 2;
-                            else bestFacing = 0;
-                            
-                            if (dx > 0) secondaryFacing = 1;
-                            else if (dx < 0) secondaryFacing = 3;
-                        }
-                    }
-                    
-                    monster.facing = bestFacing;
-                    if (!tryMoveMonster(monster)) {
-                        // If blocked, try the secondary direction
-                        if (secondaryFacing !== -1) {
-                            monster.facing = secondaryFacing;
-                            tryMoveMonster(monster);
-                        }
-                    }
+                // Random movement decision
+                const action = Math.random();
+                if (action < monster.moveChance) {
+                    // Try to move forward
+                    tryMoveMonster(monster);
+                } else if (action < monster.moveChance + 0.2) {
+                    // Turn left
+                    monster.facing = (monster.facing - 1 + 4) % 4;
                 } else {
-                    if (game.isTestChamber) {
-                         logMessage(`[${getMonsterName(monster.type)}] Wandering`, "normal");
-                    }
-                    // Random movement decision
-                    const action = Math.random();
-                    
-                    if (action < monster.moveChance) {
-                        // Try to move forward
-                        tryMoveMonster(monster);
-                    } else if (action < monster.moveChance + 0.2) {
-                        // Turn left
-                        monster.facing = (monster.facing - 1 + 4) % 4;
-                    } else {
-                        // Turn right
-                        monster.facing = (monster.facing + 1) % 4;
-                    }
+                    // Turn right
+                    monster.facing = (monster.facing + 1) % 4;
                 }
+            }
         }
     }
 }
@@ -666,7 +573,10 @@ export function tryMoveMonster(monster) {
 // Spawn monsters
 export function spawnMonsters() {
     const cellSize = game.dungeon.cellSize;
-    const numMonsters = 24;
+    let numMonsters = 24;
+    if ((game.dungeon.level || 1) === 5) {
+        numMonsters = 12;
+    }
     let spawned = 0;
     
     const level = game.dungeon.level || 1;
@@ -677,6 +587,20 @@ export function spawnMonsters() {
     game.doors.forEach(door => {
         doorCells.add(`${door.gridX},${door.gridY}`);
     });
+    // Helper for weighted random selection
+    function weightedRandomMonster(monsters) {
+        if (!Array.isArray(monsters[0])) {
+            // Backward compatibility: uniform random
+            return monsters[Math.floor(Math.random() * monsters.length)];
+        }
+        const total = monsters.reduce((sum, m) => sum + m[1], 0);
+        let r = Math.random() * total;
+        for (const [type, weight] of monsters) {
+            if (r < weight) return type;
+            r -= weight;
+        }
+        return monsters[monsters.length - 1][0];
+    }
     
     // Try to spawn monsters in random walkable spaces
     for (let attempt = 0; attempt < 100 && spawned < numMonsters; attempt++) {
@@ -709,7 +633,7 @@ export function spawnMonsters() {
             
             // Don't spawn too close to player
             if (distToPlayer > cellSize * 5) {
-                const randomType = allowedTypes[Math.floor(Math.random() * allowedTypes.length)];
+                const randomType = weightedRandomMonster(allowedTypes);
                 createMonster(x, y, randomType);
                 spawned++;
             }
